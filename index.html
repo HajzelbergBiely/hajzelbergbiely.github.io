@@ -13,18 +13,31 @@
     .coin-btn:active { transform: scale(0.95); }
     .shine { background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%); }
     .loading { opacity: 0.6; pointer-events: none; }
+    .demo-badge {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: #f59e0b;
+      color: #000;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      z-index: 100;
+    }
   </style>
-  <style>body { box-sizing: border-box; }</style>
  </head>
  <body class="h-full">
   <div id="app" class="h-full overflow-auto" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);">
-   <div class="w-full max-w-4xl mx-auto p-6"><!-- Header -->
+   <div class="w-full max-w-4xl mx-auto p-6">
+    <!-- Header -->
     <header class="text-center mb-8">
      <div class="inline-flex items-center gap-3 mb-2"><span class="text-4xl">🪙</span>
       <h1 id="main-title" class="text-3xl font-bold text-amber-400">My Euro Collection</h1><span class="text-4xl">💶</span>
      </div>
      <p class="text-slate-400">Track your coins and banknotes</p>
-    </header><!-- Summary Cards -->
+    </header>
+    <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
      <div class="bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur rounded-2xl p-5 border border-amber-500/30">
       <div class="flex items-center gap-3 mb-2"><span class="text-2xl">🪙</span> <span class="text-amber-300 font-medium">Coins</span>
@@ -43,28 +56,112 @@
       </div>
       <p id="grand-total" class="text-4xl font-bold text-white">€0.00</p>
      </div>
-    </div><!-- Coins Section -->
+    </div>
+    <!-- Coins Section -->
     <section class="bg-white/5 backdrop-blur rounded-2xl p-6 mb-6 border border-white/10">
      <h2 class="text-xl font-semibold text-amber-400 mb-4 flex items-center gap-2"><span>🪙</span> Euro Coins</h2>
-     <div id="coins-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"><!-- Coins will be rendered here -->
-     </div>
-    </section><!-- Banknotes Section -->
+     <div id="coins-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+    </section>
+    <!-- Banknotes Section -->
     <section class="bg-white/5 backdrop-blur rounded-2xl p-6 mb-6 border border-white/10">
      <h2 class="text-xl font-semibold text-emerald-400 mb-4 flex items-center gap-2"><span>💵</span> Euro Banknotes</h2>
-     <div id="notes-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"><!-- Notes will be rendered here -->
-     </div>
-    </section><!-- Reset Button -->
-    <div class="text-center"><button id="reset-btn" class="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl border border-red-500/30 transition-all"> 🗑️ Reset Collection </button>
-     <div id="reset-confirm" class="hidden mt-3 inline-flex gap-2"><button id="confirm-reset" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all">Yes, Reset</button> <button id="cancel-reset" class="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-all">Cancel</button>
-     </div>
-    </div><!-- Footer -->
+     <div id="notes-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+    </section>
+    <!-- Reset Button -->
+    <div class="text-center">
+      <button id="reset-btn" class="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl border border-red-500/30 transition-all"> 🗑️ Reset Collection </button>
+      <div id="reset-confirm" class="hidden mt-3 inline-flex gap-2">
+        <button id="confirm-reset" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all">Yes, Reset</button>
+        <button id="cancel-reset" class="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-all">Cancel</button>
+      </div>
+    </div>
+    <!-- Footer -->
     <footer class="text-center mt-8 text-slate-500 text-sm">
      <p>Click + to add, - to remove from your collection</p>
     </footer>
    </div>
   </div>
+  <!-- Demo badge (shown only when using localStorage fallback) -->
+  <div id="demo-badge" class="demo-badge hidden">🔧 Demo Mode (localStorage)</div>
+
   <script>
-    // Reference data - coins and banknotes
+    // ==================== MOCK SDK FALLBACK ====================
+    // If the real Data SDK is missing, we create a mock that uses localStorage.
+    (function setupMockSDK() {
+      const STORAGE_KEY = 'euro_collection_data';
+      
+      // Check if real SDK exists
+      if (typeof window.dataSdk !== 'undefined' && window.dataSdk) {
+        console.log('Using real Data SDK');
+        return; // Real SDK present, do nothing
+      }
+
+      console.warn('Data SDK not found. Using localStorage fallback (demo mode).');
+      document.getElementById('demo-badge').classList.remove('hidden');
+
+      // Load initial data from localStorage
+      let mockData = [];
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) mockData = JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to load from localStorage', e);
+      }
+
+      // Mock SDK object
+      window.dataSdk = {
+        // Mimics the real SDK init: expects a handler with onDataChanged
+        async init(handler) {
+          this.handler = handler;
+          // Simulate initial data load
+          setTimeout(() => {
+            if (this.handler && this.handler.onDataChanged) {
+              this.handler.onDataChanged(mockData);
+            }
+          }, 0);
+          return { isOk: true };
+        },
+
+        async create(item) {
+          // Add unique id if not present (real SDK does this)
+          if (!item.id) item.id = Date.now() + Math.random().toString(36).substr(2, 9);
+          mockData.push(item);
+          this._saveAndNotify();
+          return { isOk: true, data: item };
+        },
+
+        async update(item) {
+          const index = mockData.findIndex(d => d.id === item.id);
+          if (index !== -1) {
+            mockData[index] = item;
+          } else {
+            // If not found, treat as create
+            mockData.push(item);
+          }
+          this._saveAndNotify();
+          return { isOk: true };
+        },
+
+        async delete(item) {
+          mockData = mockData.filter(d => d.id !== item.id);
+          this._saveAndNotify();
+          return { isOk: true };
+        },
+
+        _saveAndNotify() {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(mockData));
+          } catch (e) {
+            console.error('Failed to save to localStorage', e);
+          }
+          if (this.handler && this.handler.onDataChanged) {
+            this.handler.onDataChanged(mockData);
+          }
+        }
+      };
+    })();
+
+    // ==================== APP CODE ====================
     const COINS = [
       { id: '1c', label: '1¢', value: 0.01, color: 'from-amber-700 to-amber-800' },
       { id: '2c', label: '2¢', value: 0.02, color: 'from-amber-700 to-amber-800' },
@@ -99,13 +196,11 @@
       font_size: 16
     };
 
-    // Helper to get quantity for a denomination
     function getQuantity(denomination) {
       const item = collectionData.find(d => d.denomination === denomination);
       return item ? item.quantity : 0;
     }
 
-    // Show input modal for adding quantity
     function showAddModal(denomination, type) {
       const item = type === 'coin' ? COINS.find(c => c.id === denomination) : BANKNOTES.find(n => n.id === denomination);
       
@@ -143,37 +238,28 @@
       
       const handleAdd = async () => {
         const qty = parseInt(input.value) || 0;
-        
         if (qty <= 0) {
           input.value = '';
           input.focus();
           return;
         }
-        
         await addFromModal(denomination, type, qty);
         modal.remove();
       };
       
       addBtn.addEventListener('click', handleAdd);
       cancelBtn.addEventListener('click', () => modal.remove());
-      
       input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          handleAdd();
-        }
+        if (e.key === 'Enter') handleAdd();
       });
     }
 
-    // Add from modal
     async function addFromModal(denomination, type, qty) {
       await updateQuantity(denomination, type, qty);
     }
 
-    // Render a denomination card
     function renderCard(item, type) {
       const qty = getQuantity(item.id);
-      const isNote = type === 'note';
-      
       return `
         <div class="bg-gradient-to-br ${item.color} rounded-xl p-4 relative overflow-hidden shine cursor-pointer group hover:shadow-lg transition-all" onclick="showAddModal('${item.id}', '${type}')">
           <div class="absolute inset-0 shine pointer-events-none"></div>
@@ -199,7 +285,6 @@
       `;
     }
 
-    // Render all cards
     function renderCards() {
       const coinsGrid = document.getElementById('coins-grid');
       const notesGrid = document.getElementById('notes-grid');
@@ -207,33 +292,23 @@
       coinsGrid.innerHTML = COINS.map(c => renderCard(c, 'coin')).join('');
       notesGrid.innerHTML = BANKNOTES.map(n => renderCard(n, 'note')).join('');
       
-      // Attach event listeners to buttons
       document.querySelectorAll('.increase-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          const denom = btn.dataset.denomination;
-          const type = btn.dataset.type;
-          updateQuantity(denom, type, 1);
+          updateQuantity(btn.dataset.denomination, btn.dataset.type, 1);
         });
       });
       
       document.querySelectorAll('.decrease-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          const denom = btn.dataset.denomination;
-          const type = btn.dataset.type;
-          updateQuantity(denom, type, -1);
+          updateQuantity(btn.dataset.denomination, btn.dataset.type, -1);
         });
       });
     }
 
-    // Update totals display
     function updateTotals() {
-      let coinsValue = 0;
-      let coinsCount = 0;
-      let notesValue = 0;
-      let notesCount = 0;
-
+      let coinsValue = 0, coinsCount = 0, notesValue = 0, notesCount = 0;
       collectionData.forEach(item => {
         if (item.type === 'coin') {
           const coinRef = COINS.find(c => c.id === item.denomination);
@@ -249,7 +324,6 @@
           }
         }
       });
-
       document.getElementById('coins-total').textContent = `€${coinsValue.toFixed(2)}`;
       document.getElementById('coins-count').textContent = `${coinsCount} coin${coinsCount !== 1 ? 's' : ''}`;
       document.getElementById('notes-total').textContent = `€${notesValue.toFixed(2)}`;
@@ -257,25 +331,19 @@
       document.getElementById('grand-total').textContent = `€${(coinsValue + notesValue).toFixed(2)}`;
     }
 
-    // Update quantity with error handling
     async function updateQuantity(denomination, type, delta) {
       if (isLoading) {
         alert('Please wait, operation in progress.');
         return;
       }
       
-      if (!window.dataSdk) {
-        alert('Data SDK is not available. Please check that the SDK script is loaded.');
-        return;
-      }
-      
+      // SDK is guaranteed to exist (real or mock)
       const existing = collectionData.find(d => d.denomination === denomination);
       const newQty = (existing ? existing.quantity : 0) + delta;
-      
       if (newQty < 0) return;
       
       isLoading = true;
-      document.body.classList.add('loading'); // Optional visual feedback
+      document.body.classList.add('loading');
       
       try {
         if (existing) {
@@ -304,7 +372,7 @@
           }
         }
       } catch (error) {
-        console.error('Unexpected error in updateQuantity:', error);
+        console.error('Unexpected error:', error);
         alert('An unexpected error occurred: ' + error.message);
       } finally {
         isLoading = false;
@@ -312,14 +380,8 @@
       }
     }
 
-    // Reset collection
     async function resetCollection() {
       if (isLoading || collectionData.length === 0) return;
-      
-      if (!window.dataSdk) {
-        alert('Data SDK not available.');
-        return;
-      }
       
       isLoading = true;
       document.getElementById('confirm-reset').disabled = true;
@@ -346,7 +408,6 @@
       }
     }
 
-    // Data handler
     const dataHandler = {
       onDataChanged(data) {
         collectionData = data;
@@ -355,21 +416,14 @@
       }
     };
 
-    // Element SDK config change handler
     async function onConfigChange(config) {
-      const title = config.collection_title || defaultConfig.collection_title;
-      document.getElementById('main-title').textContent = title;
-      
-      const font = config.font_family || defaultConfig.font_family;
-      document.body.style.fontFamily = `${font}, sans-serif`;
-      
-      const fontSize = config.font_size || defaultConfig.font_size;
-      document.body.style.fontSize = `${fontSize}px`;
+      document.getElementById('main-title').textContent = config.collection_title || defaultConfig.collection_title;
+      document.body.style.fontFamily = `${config.font_family || defaultConfig.font_family}, sans-serif`;
+      document.body.style.fontSize = (config.font_size || defaultConfig.font_size) + 'px';
     }
 
-    // Initialize
     async function init() {
-      // Initialize Element SDK
+      // Element SDK (optional)
       if (window.elementSdk) {
         window.elementSdk.init({
           defaultConfig,
@@ -391,33 +445,22 @@
           ])
         });
       } else {
-        console.warn('Element SDK not found.');
+        console.warn('Element SDK not found, using defaults.');
       }
 
-      // Initialize Data SDK
-      if (window.dataSdk) {
-        const result = await window.dataSdk.init(dataHandler);
-        if (!result.isOk) {
-          console.error('Failed to initialize Data SDK:', result.error);
-          alert('Failed to initialize Data SDK: ' + result.error);
-        }
-      } else {
-        console.warn('Data SDK not found. Buttons will not work.');
-        alert('Data SDK not loaded. Please check that the script is included.');
+      // Initialize Data SDK (real or mock)
+      const result = await window.dataSdk.init(dataHandler);
+      if (!result.isOk) {
+        console.error('Failed to initialize Data SDK:', result.error);
+        alert('Failed to initialize Data SDK: ' + result.error);
       }
-
-      // Initial render with empty data
-      renderCards();
-      updateTotals();
 
       // Reset button handlers
       document.getElementById('reset-btn').addEventListener('click', () => {
         document.getElementById('reset-btn').classList.add('hidden');
         document.getElementById('reset-confirm').classList.remove('hidden');
       });
-
       document.getElementById('confirm-reset').addEventListener('click', resetCollection);
-      
       document.getElementById('cancel-reset').addEventListener('click', () => {
         document.getElementById('reset-confirm').classList.add('hidden');
         document.getElementById('reset-btn').classList.remove('hidden');
