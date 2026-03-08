@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Euro Collection Tracker</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'DM Sans', sans-serif; }
+    .coin-btn:active { transform: scale(0.95); }
+    .shine { background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%); }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full overflow-auto" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);">
+   <div class="w-full max-w-4xl mx-auto p-6"><!-- Header -->
+    <header class="text-center mb-8">
+     <div class="inline-flex items-center gap-3 mb-2"><span class="text-4xl">🪙</span>
+      <h1 id="main-title" class="text-3xl font-bold text-amber-400">My Euro Collection</h1><span class="text-4xl">💶</span>
+     </div>
+     <p class="text-slate-400">Track your coins and banknotes</p>
+    </header><!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+     <div class="bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur rounded-2xl p-5 border border-amber-500/30">
+      <div class="flex items-center gap-3 mb-2"><span class="text-2xl">🪙</span> <span class="text-amber-300 font-medium">Coins</span>
+      </div>
+      <p id="coins-total" class="text-3xl font-bold text-white">€0.00</p>
+      <p id="coins-count" class="text-sm text-slate-400 mt-1">0 coins</p>
+     </div>
+     <div class="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 backdrop-blur rounded-2xl p-5 border border-emerald-500/30">
+      <div class="flex items-center gap-3 mb-2"><span class="text-2xl">💵</span> <span class="text-emerald-300 font-medium">Banknotes</span>
+      </div>
+      <p id="notes-total" class="text-3xl font-bold text-white">€0.00</p>
+      <p id="notes-count" class="text-sm text-slate-400 mt-1">0 notes</p>
+     </div>
+     <div class="bg-gradient-to-br from-violet-500/20 to-violet-600/10 backdrop-blur rounded-2xl p-5 border border-violet-500/30">
+      <div class="flex items-center gap-3 mb-2"><span class="text-2xl">💰</span> <span class="text-violet-300 font-medium">Grand Total</span>
+      </div>
+      <p id="grand-total" class="text-4xl font-bold text-white">€0.00</p>
+     </div>
+    </div><!-- Coins Section -->
+    <section class="bg-white/5 backdrop-blur rounded-2xl p-6 mb-6 border border-white/10">
+     <h2 class="text-xl font-semibold text-amber-400 mb-4 flex items-center gap-2"><span>🪙</span> Euro Coins</h2>
+     <div id="coins-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"><!-- Coins will be rendered here -->
+     </div>
+    </section><!-- Banknotes Section -->
+    <section class="bg-white/5 backdrop-blur rounded-2xl p-6 mb-6 border border-white/10">
+     <h2 class="text-xl font-semibold text-emerald-400 mb-4 flex items-center gap-2"><span>💵</span> Euro Banknotes</h2>
+     <div id="notes-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"><!-- Notes will be rendered here -->
+     </div>
+    </section><!-- Reset Button -->
+    <div class="text-center"><button id="reset-btn" class="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl border border-red-500/30 transition-all"> 🗑️ Reset Collection </button>
+     <div id="reset-confirm" class="hidden mt-3 inline-flex gap-2"><button id="confirm-reset" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all">Yes, Reset</button> <button id="cancel-reset" class="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-all">Cancel</button>
+     </div>
+    </div><!-- Footer -->
+    <footer class="text-center mt-8 text-slate-500 text-sm">
+     <p>Click + to add, - to remove from your collection</p>
+    </footer>
+   </div>
+  </div>
+  <script>
+    // Reference data - coins and banknotes
+    const COINS = [
+      { id: '1c', label: '1¢', value: 0.01, color: 'from-amber-700 to-amber-800' },
+      { id: '2c', label: '2¢', value: 0.02, color: 'from-amber-700 to-amber-800' },
+      { id: '5c', label: '5¢', value: 0.05, color: 'from-amber-700 to-amber-800' },
+      { id: '10c', label: '10¢', value: 0.10, color: 'from-yellow-500 to-yellow-600' },
+      { id: '20c', label: '20¢', value: 0.20, color: 'from-yellow-500 to-yellow-600' },
+      { id: '50c', label: '50¢', value: 0.50, color: 'from-yellow-500 to-yellow-600' },
+      { id: '1e', label: '€1', value: 1.00, color: 'from-yellow-400 to-amber-500' },
+      { id: '2e', label: '€2', value: 2.00, color: 'from-slate-400 to-yellow-500' }
+    ];
+
+    const BANKNOTES = [
+      { id: '5n', label: '€5', value: 5, color: 'from-gray-400 to-gray-500' },
+      { id: '10n', label: '€10', value: 10, color: 'from-red-400 to-red-500' },
+      { id: '20n', label: '€20', value: 20, color: 'from-blue-400 to-blue-500' },
+      { id: '50n', label: '€50', value: 50, color: 'from-orange-400 to-orange-500' },
+      { id: '100n', label: '€100', value: 100, color: 'from-green-400 to-green-500' },
+      { id: '200n', label: '€200', value: 200, color: 'from-yellow-400 to-yellow-500' },
+      { id: '500n', label: '€500', value: 500, color: 'from-purple-400 to-purple-500' }
+    ];
+
+    // State
+    let collectionData = [];
+    let isLoading = false;
+
+    const defaultConfig = {
+      collection_title: 'My Euro Collection',
+      background_color: '#1a1a2e',
+      accent_color: '#f59e0b',
+      text_color: '#ffffff',
+      font_family: 'DM Sans',
+      font_size: 16
+    };
+
+    // Helper to get quantity for a denomination
+    function getQuantity(denomination) {
+      const item = collectionData.find(d => d.denomination === denomination);
+      return item ? item.quantity : 0;
+    }
+
+    // Render a denomination card
+    function renderCard(item, type) {
+      const qty = getQuantity(item.id);
+      const isNote = type === 'note';
+      
+      return `
+        <div class="bg-gradient-to-br ${item.color} rounded-xl p-4 relative overflow-hidden shine">
+          <div class="absolute inset-0 shine pointer-events-none"></div>
+          <div class="relative z-10">
+            <div class="text-2xl font-bold text-white mb-1">${item.label}</div>
+            <div class="text-white/80 text-sm mb-3">×<span id="qty-${item.id}">${qty}</span></div>
+            <div class="flex gap-2">
+              <button 
+                onclick="updateQuantity('${item.id}', '${type}', -1)" 
+                class="coin-btn w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white font-bold transition-all flex items-center justify-center"
+                ${qty === 0 ? 'disabled style="opacity:0.3;cursor:not-allowed"' : ''}
+              >−</button>
+              <button 
+                onclick="updateQuantity('${item.id}', '${type}', 1)" 
+                class="coin-btn w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white font-bold transition-all flex items-center justify-center"
+              >+</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Render all cards
+    function renderCards() {
+      const coinsGrid = document.getElementById('coins-grid');
+      const notesGrid = document.getElementById('notes-grid');
+      
+      coinsGrid.innerHTML = COINS.map(c => renderCard(c, 'coin')).join('');
+      notesGrid.innerHTML = BANKNOTES.map(n => renderCard(n, 'note')).join('');
+    }
+
+    // Update totals display
+    function updateTotals() {
+      let coinsValue = 0;
+      let coinsCount = 0;
+      let notesValue = 0;
+      let notesCount = 0;
+
+      collectionData.forEach(item => {
+        if (item.type === 'coin') {
+          const coinRef = COINS.find(c => c.id === item.denomination);
+          if (coinRef) {
+            coinsValue += coinRef.value * item.quantity;
+            coinsCount += item.quantity;
+          }
+        } else {
+          const noteRef = BANKNOTES.find(n => n.id === item.denomination);
+          if (noteRef) {
+            notesValue += noteRef.value * item.quantity;
+            notesCount += item.quantity;
+          }
+        }
+      });
+
+      document.getElementById('coins-total').textContent = `€${coinsValue.toFixed(2)}`;
+      document.getElementById('coins-count').textContent = `${coinsCount} coin${coinsCount !== 1 ? 's' : ''}`;
+      document.getElementById('notes-total').textContent = `€${notesValue.toFixed(2)}`;
+      document.getElementById('notes-count').textContent = `${notesCount} note${notesCount !== 1 ? 's' : ''}`;
+      document.getElementById('grand-total').textContent = `€${(coinsValue + notesValue).toFixed(2)}`;
+    }
+
+    // Update quantity
+    async function updateQuantity(denomination, type, delta) {
+      if (isLoading) return;
+      
+      const existing = collectionData.find(d => d.denomination === denomination);
+      const newQty = (existing ? existing.quantity : 0) + delta;
+      
+      if (newQty < 0) return;
+      
+      isLoading = true;
+      
+      try {
+        if (existing) {
+          if (newQty === 0) {
+            const result = await window.dataSdk.delete(existing);
+            if (!result.isOk) {
+              console.error('Failed to delete:', result.error);
+            }
+          } else {
+            const result = await window.dataSdk.update({ ...existing, quantity: newQty });
+            if (!result.isOk) {
+              console.error('Failed to update:', result.error);
+            }
+          }
+        } else if (newQty > 0) {
+          if (collectionData.length >= 999) {
+            alert('Maximum collection size reached!');
+            return;
+          }
+          const result = await window.dataSdk.create({ denomination, type, quantity: newQty });
+          if (!result.isOk) {
+            console.error('Failed to create:', result.error);
+          }
+        }
+      } finally {
+        isLoading = false;
+      }
+    }
+
+    // Reset collection
+    async function resetCollection() {
+      if (isLoading || collectionData.length === 0) return;
+      
+      isLoading = true;
+      document.getElementById('confirm-reset').disabled = true;
+      
+      try {
+        for (const item of [...collectionData]) {
+          await window.dataSdk.delete(item);
+        }
+      } finally {
+        isLoading = false;
+        document.getElementById('reset-confirm').classList.add('hidden');
+        document.getElementById('reset-btn').classList.remove('hidden');
+      }
+    }
+
+    // Data handler
+    const dataHandler = {
+      onDataChanged(data) {
+        collectionData = data;
+        renderCards();
+        updateTotals();
+      }
+    };
+
+    // Element SDK config change handler
+    async function onConfigChange(config) {
+      const title = config.collection_title || defaultConfig.collection_title;
+      document.getElementById('main-title').textContent = title;
+      
+      const font = config.font_family || defaultConfig.font_family;
+      document.body.style.fontFamily = `${font}, sans-serif`;
+      
+      const fontSize = config.font_size || defaultConfig.font_size;
+      document.body.style.fontSize = `${fontSize}px`;
+    }
+
+    // Initialize
+    async function init() {
+      // Initialize Element SDK
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange,
+          mapToCapabilities: (config) => ({
+            recolorables: [],
+            borderables: [],
+            fontEditable: {
+              get: () => config.font_family || defaultConfig.font_family,
+              set: (value) => window.elementSdk.setConfig({ font_family: value })
+            },
+            fontSizeable: {
+              get: () => config.font_size || defaultConfig.font_size,
+              set: (value) => window.elementSdk.setConfig({ font_size: value })
+            }
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ['collection_title', config.collection_title || defaultConfig.collection_title]
+          ])
+        });
+      }
+
+      // Initialize Data SDK
+      if (window.dataSdk) {
+        const result = await window.dataSdk.init(dataHandler);
+        if (!result.isOk) {
+          console.error('Failed to initialize Data SDK');
+        }
+      }
+
+      // Initial render with empty data
+      renderCards();
+      updateTotals();
+
+      // Reset button handlers
+      document.getElementById('reset-btn').addEventListener('click', () => {
+        document.getElementById('reset-btn').classList.add('hidden');
+        document.getElementById('reset-confirm').classList.remove('hidden');
+      });
+
+      document.getElementById('confirm-reset').addEventListener('click', resetCollection);
+      
+      document.getElementById('cancel-reset').addEventListener('click', () => {
+        document.getElementById('reset-confirm').classList.add('hidden');
+        document.getElementById('reset-btn').classList.remove('hidden');
+      });
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d909ddb135cc2c0',t:'MTc3Mjk2MDA4MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
