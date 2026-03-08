@@ -12,6 +12,7 @@
     * { font-family: 'DM Sans', sans-serif; }
     .coin-btn:active { transform: scale(0.95); }
     .shine { background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%); }
+    .loading { opacity: 0.6; pointer-events: none; }
   </style>
   <style>body { box-sizing: border-box; }</style>
  </head>
@@ -256,9 +257,17 @@
       document.getElementById('grand-total').textContent = `€${(coinsValue + notesValue).toFixed(2)}`;
     }
 
-    // Update quantity
+    // Update quantity with error handling
     async function updateQuantity(denomination, type, delta) {
-      if (isLoading) return;
+      if (isLoading) {
+        alert('Please wait, operation in progress.');
+        return;
+      }
+      
+      if (!window.dataSdk) {
+        alert('Data SDK is not available. Please check that the SDK script is loaded.');
+        return;
+      }
       
       const existing = collectionData.find(d => d.denomination === denomination);
       const newQty = (existing ? existing.quantity : 0) + delta;
@@ -266,6 +275,7 @@
       if (newQty < 0) return;
       
       isLoading = true;
+      document.body.classList.add('loading'); // Optional visual feedback
       
       try {
         if (existing) {
@@ -273,11 +283,13 @@
             const result = await window.dataSdk.delete(existing);
             if (!result.isOk) {
               console.error('Failed to delete:', result.error);
+              alert('Failed to delete: ' + result.error);
             }
           } else {
             const result = await window.dataSdk.update({ ...existing, quantity: newQty });
             if (!result.isOk) {
               console.error('Failed to update:', result.error);
+              alert('Failed to update: ' + result.error);
             }
           }
         } else if (newQty > 0) {
@@ -288,10 +300,15 @@
           const result = await window.dataSdk.create({ denomination, type, quantity: newQty });
           if (!result.isOk) {
             console.error('Failed to create:', result.error);
+            alert('Failed to create: ' + result.error);
           }
         }
+      } catch (error) {
+        console.error('Unexpected error in updateQuantity:', error);
+        alert('An unexpected error occurred: ' + error.message);
       } finally {
         isLoading = false;
+        document.body.classList.remove('loading');
       }
     }
 
@@ -299,17 +316,33 @@
     async function resetCollection() {
       if (isLoading || collectionData.length === 0) return;
       
+      if (!window.dataSdk) {
+        alert('Data SDK not available.');
+        return;
+      }
+      
       isLoading = true;
       document.getElementById('confirm-reset').disabled = true;
+      document.body.classList.add('loading');
       
       try {
         for (const item of [...collectionData]) {
-          await window.dataSdk.delete(item);
+          const result = await window.dataSdk.delete(item);
+          if (!result.isOk) {
+            console.error('Failed to delete during reset:', result.error);
+            alert('Error during reset: ' + result.error);
+            break;
+          }
         }
+      } catch (error) {
+        console.error('Reset error:', error);
+        alert('Reset failed: ' + error.message);
       } finally {
         isLoading = false;
+        document.body.classList.remove('loading');
         document.getElementById('reset-confirm').classList.add('hidden');
         document.getElementById('reset-btn').classList.remove('hidden');
+        document.getElementById('confirm-reset').disabled = false;
       }
     }
 
@@ -357,14 +390,20 @@
             ['collection_title', config.collection_title || defaultConfig.collection_title]
           ])
         });
+      } else {
+        console.warn('Element SDK not found.');
       }
 
       // Initialize Data SDK
       if (window.dataSdk) {
         const result = await window.dataSdk.init(dataHandler);
         if (!result.isOk) {
-          console.error('Failed to initialize Data SDK');
+          console.error('Failed to initialize Data SDK:', result.error);
+          alert('Failed to initialize Data SDK: ' + result.error);
         }
+      } else {
+        console.warn('Data SDK not found. Buttons will not work.');
+        alert('Data SDK not loaded. Please check that the script is included.');
       }
 
       // Initial render with empty data
@@ -387,5 +426,5 @@
 
     init();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d90b32fc49b6c45',t:'MTc3Mjk2MDk1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ </body>
 </html>
