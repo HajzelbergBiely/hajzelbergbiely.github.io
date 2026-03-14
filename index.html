@@ -1,5 +1,755 @@
 <!doctype html>
 <html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Euro Collection Tracker</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'DM Sans', sans-serif; }
+    body { box-sizing: border-box; }
+    .coin-btn:active { transform: scale(0.95); }
+    .coin-card { transition: all 0.2s ease; }
+    .coin-card:hover { transform: translateY(-2px); }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js" type="text/javascript"></script>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full overflow-auto" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1a1f35 100%);">
+   <div class="w-full max-w-7xl mx-auto p-6">
+    <!-- Header -->
+    <header class="text-center mb-8">
+     <div class="inline-flex items-center gap-3 mb-2">
+      <span class="text-4xl">🪙</span>
+      <h1 id="main-title" class="text-3xl font-bold text-amber-400">My Euro Collection</h1><span class="text-4xl">🌍</span>
+     </div>
+     <p class="text-slate-400">Track coins and banknotes by country</p>
+    </header><!-- Summary Card -->
+    <div class="bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur rounded-2xl p-6 mb-8 border border-amber-500/30">
+     <div class="flex items-center justify-between">
+      <div>
+       <div class="text-amber-300 font-medium mb-2">
+        Total Collection Value
+       </div>
+       <p id="grand-total" class="text-4xl font-bold text-white">€0.00</p>
+       <p id="coins-count" class="text-sm text-slate-400 mt-2">0 items total</p>
+      </div>
+      <div class="text-5xl">
+       💰
+      </div>
+     </div>
+    </div><!-- Type Selector (Coins/Banknotes) -->
+    <div class="mb-8 flex gap-4">
+     <button id="type-coins-btn" class="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg transition-all border border-amber-400">🪙 Coins</button> <button id="type-notes-btn" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition-all border border-slate-600">💵 Banknotes</button>
+    </div><!-- Country Selector -->
+    <div class="mb-8">
+     <h2 class="text-lg font-semibold text-white mb-4">Select Country</h2>
+     <div id="country-selector" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+      <!-- Country buttons will render here -->
+     </div>
+    </div><!-- Country Detail View - COINS -->
+    <div id="coins-view" class="bg-white/5 backdrop-blur rounded-2xl p-6 border border-white/10">
+     <div id="coin-header" class="mb-6 pb-4 border-b border-white/10">
+      <div class="flex items-center gap-3"><span id="coin-flag" class="text-4xl">🪙</span>
+       <div>
+        <h3 id="coin-name" class="text-2xl font-bold text-white">Select a country</h3>
+        <p id="coin-code" class="text-slate-400">Choose from the list above</p>
+       </div>
+      </div>
+     </div><!-- Country Statistics -->
+     <div id="coin-stats" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6 p-4 bg-slate-800/30 rounded-lg border border-slate-700/50">
+      <div class="text-center">
+       <div class="text-xs text-slate-400">
+        5¢
+       </div>
+       <div class="text-lg font-bold text-white" id="stat-5c">
+        0
+       </div>
+      </div>
+      <div class="text-center">
+       <div class="text-xs text-slate-400">
+        10¢
+       </div>
+       <div class="text-lg font-bold text-white" id="stat-10c">
+        0
+       </div>
+      </div>
+      <div class="text-center">
+       <div class="text-xs text-slate-400">
+        20¢
+       </div>
+       <div class="text-lg font-bold text-white" id="stat-20c">
+        0
+       </div>
+      </div>
+      <div class="text-center">
+       <div class="text-xs text-slate-400">
+        50¢
+       </div>
+       <div class="text-lg font-bold text-white" id="stat-50c">
+        0
+       </div>
+      </div>
+      <div class="text-center">
+       <div class="text-xs text-slate-400">
+        €1
+       </div>
+       <div class="text-lg font-bold text-white" id="stat-1e">
+        0
+       </div>
+      </div>
+      <div class="text-center">
+       <div class="text-xs text-slate-400">
+        €2
+       </div>
+       <div class="text-lg font-bold text-white" id="stat-2e">
+        0
+       </div>
+      </div>
+      <div class="text-center border-l border-slate-700">
+       <div class="text-xs text-slate-400">
+        Total
+       </div>
+       <div class="text-lg font-bold text-amber-400" id="stat-coin-total-value">
+        €0
+       </div>
+       <div class="text-xs text-slate-500" id="stat-coin-total-coins">
+        0 coins
+       </div>
+      </div>
+     </div>
+     <div id="coin-denomination-tabs" class="flex gap-2 mb-6 overflow-x-auto pb-2">
+      <!-- Denomination tabs will render here -->
+     </div>
+     <div id="coin-matrix-container">
+      <p class="text-slate-400 text-center py-8">Select a denomination to view coins</p>
+     </div>
+    </div><!-- Country Detail View - BANKNOTES -->
+    <div id="notes-view" class="hidden bg-white/5 backdrop-blur rounded-2xl p-6 border border-white/10">
+     <div id="note-header" class="mb-6 pb-4 border-b border-white/10">
+      <div class="flex items-center gap-3"><span id="note-flag" class="text-4xl">💵</span>
+       <div>
+        <h3 id="note-name" class="text-2xl font-bold text-white">Select a country</h3>
+        <p id="note-code" class="text-slate-400">Choose from the list above</p>
+       </div>
+      </div>
+     </div><!-- Banknote Statistics -->
+     <div id="note-stats" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6 p-4 bg-slate-800/30 rounded-lg border border-slate-700/50">
+      <div class="text-center">
+       <div class="text-xs text-slate-400">
+        €5
+       </div>
+       <div class="text-lg font-bold text-white" id="stat-5note">
+        0
+       </div>
+      </div>
+      <div class="text-center">
+       <div class="text-xs text-slate-400">
+        €10
+       </div>
+       <div class="text-lg font-bold text-white" id="stat-10note">
+        0
+       </div>
+      </div>
+      <div class="text-center">
+       <div class="text-xs text-slate-400">
+        €20
+       </div>
+       <div class="text-lg font-bold text-white" id="stat-20note">
+        0
+       </div>
+      </div>
+      <div class="text-center">
+       <div class="text-xs text-slate-400">
+        €50
+       </div>
+       <div class="text-lg font-bold text-white" id="stat-50note">
+        0
+       </div>
+      </div>
+      <div class="text-center">
+       <div class="text-xs text-slate-400">
+        €100
+       </div>
+       <div class="text-lg font-bold text-white" id="stat-100note">
+        0
+       </div>
+      </div>
+      <div class="text-center">
+       <div class="text-xs text-slate-400">
+        €200
+       </div>
+       <div class="text-lg font-bold text-white" id="stat-200note">
+        0
+       </div>
+      </div>
+      <div class="text-center">
+       <div class="text-xs text-slate-400">
+        €500
+       </div>
+       <div class="text-lg font-bold text-white" id="stat-500note">
+        0
+       </div>
+      </div>
+      <div class="text-center border-l border-slate-700">
+       <div class="text-xs text-slate-400">
+        Total
+       </div>
+       <div class="text-lg font-bold text-amber-400" id="stat-note-total-value">
+        €0
+       </div>
+       <div class="text-xs text-slate-500" id="stat-note-total-notes">
+        0 notes
+       </div>
+      </div>
+     </div>
+     <div id="note-matrix-container">
+      <p class="text-slate-400 text-center py-8">Click on a banknote to add to your collection</p>
+     </div>
+    </div><!-- Reset Button -->
+    <div class="text-center mt-8">
+     <button id="reset-btn" class="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl border border-red-500/30 transition-all"> 🗑️ Clear All Data </button>
+     <div id="reset-confirm" class="hidden mt-3 inline-flex gap-2">
+      <button id="confirm-reset" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all">Yes, Clear</button> <button id="cancel-reset" class="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-all">Cancel</button>
+     </div>
+    </div>
+    <footer class="text-center mt-8 text-slate-500 text-sm pb-6">
+     <p>Click any item to enter quantity or use +/- buttons</p>
+    </footer>
+   </div>
+  </div>
+  <script>
+    // Country data with production years for each denomination
+    const COUNTRIES = [
+      { name: 'Austria', code: 'AT', flag: '🇦🇹', denominations: { '5c': [2007, 2026], '10c': [2007, 2026], '20c': [2007, 2026], '50c': [2007, 2026], '1e': [2007, 2026], '2e': [2007, 2026] } },
+      { name: 'Belgium', code: 'BE', flag: '🇧🇪', denominations: { '5c': [2007, 2026], '10c': [2007, 2026], '20c': [2007, 2026], '50c': [2007, 2026], '1e': [2007, 2026], '2e': [2007, 2026] } },
+      { name: 'Cyprus', code: 'CY', flag: '🇨🇾', denominations: { '5c': [2008, 2026], '10c': [2008, 2026], '20c': [2008, 2026], '50c': [2008, 2026], '1e': [2008, 2026], '2e': [2008, 2026] } },
+      { name: 'Estonia', code: 'EE', flag: '🇪🇪', denominations: { '5c': [2011, 2026], '10c': [2011, 2026], '20c': [2011, 2026], '50c': [2011, 2026], '1e': [2011, 2026], '2e': [2011, 2026] } },
+      { name: 'Finland', code: 'FI', flag: '🇫🇮', denominations: { '5c': [2007, 2026], '10c': [2007, 2026], '20c': [2007, 2026], '50c': [2007, 2026], '1e': [2007, 2026], '2e': [2007, 2026] } },
+      { name: 'France', code: 'FR', flag: '🇫🇷', denominations: { '5c': [2007, 2026], '10c': [2007, 2026], '20c': [2007, 2026], '50c': [2007, 2026], '1e': [2007, 2026], '2e': [2007, 2026] } },
+      { name: 'Germany', code: 'DE', flag: '🇩🇪', denominations: { '5c': [2007, 2026], '10c': [2007, 2026], '20c': [2007, 2026], '50c': [2007, 2026], '1e': [2007, 2026], '2e': [2007, 2026] } },
+      { name: 'Greece', code: 'GR', flag: '🇬🇷', denominations: { '5c': [2007, 2026], '10c': [2007, 2026], '20c': [2007, 2026], '50c': [2007, 2026], '1e': [2007, 2026], '2e': [2007, 2026] } },
+      { name: 'Ireland', code: 'IE', flag: '🇮🇪', denominations: { '5c': [2007, 2026], '10c': [2007, 2026], '20c': [2007, 2026], '50c': [2007, 2026], '1e': [2007, 2026], '2e': [2007, 2026] } },
+      { name: 'Italy', code: 'IT', flag: '🇮🇹', denominations: { '5c': [2007, 2026], '10c': [2007, 2026], '20c': [2007, 2026], '50c': [2007, 2026], '1e': [2007, 2026], '2e': [2007, 2026] } },
+      { name: 'Latvia', code: 'LV', flag: '🇱🇻', denominations: { '5c': [2014, 2026], '10c': [2014, 2026], '20c': [2014, 2026], '50c': [2014, 2026], '1e': [2014, 2026], '2e': [2014, 2026] } },
+      { name: 'Lithuania', code: 'LT', flag: '🇱🇹', denominations: { '5c': [2015, 2026], '10c': [2015, 2026], '20c': [2015, 2026], '50c': [2015, 2026], '1e': [2015, 2026], '2e': [2015, 2026] } },
+      { name: 'Luxembourg', code: 'LU', flag: '🇱🇺', denominations: { '5c': [2007, 2026], '10c': [2007, 2026], '20c': [2007, 2026], '50c': [2007, 2026], '1e': [2007, 2026], '2e': [2007, 2026] } },
+      { name: 'Malta', code: 'MT', flag: '🇲🇹', denominations: { '5c': [2008, 2026], '10c': [2008, 2026], '20c': [2008, 2026], '50c': [2008, 2026], '1e': [2008, 2026], '2e': [2008, 2026] } },
+      { name: 'Netherlands', code: 'NL', flag: '🇳🇱', denominations: { '5c': [2007, 2026], '10c': [2007, 2026], '20c': [2007, 2026], '50c': [2007, 2026], '1e': [2007, 2026], '2e': [2007, 2026] } },
+      { name: 'Portugal', code: 'PT', flag: '🇵🇹', denominations: { '5c': [2007, 2026], '10c': [2007, 2026], '20c': [2007, 2026], '50c': [2007, 2026], '1e': [2007, 2026], '2e': [2007, 2026] } },
+      { name: 'Slovakia', code: 'SK', flag: '🇸🇰', denominations: { '5c': [2009, 2026], '10c': [2009, 2026], '20c': [2009, 2026], '50c': [2009, 2026], '1e': [2009, 2026], '2e': [2009, 2026] } },
+      { name: 'Slovenia', code: 'SI', flag: '🇸🇮', denominations: { '5c': [2007, 2026], '10c': [2007, 2026], '20c': [2007, 2026], '50c': [2007, 2026], '1e': [2007, 2026], '2e': [2007, 2026] } },
+      { name: 'Spain', code: 'ES', flag: '🇪🇸', denominations: { '5c': [2007, 2026], '10c': [2007, 2026], '20c': [2007, 2026], '50c': [2007, 2026], '1e': [2007, 2026], '2e': [2007, 2026] } },
+      { name: 'Suriname', code: 'SR', flag: '🇸🇷', denominations: { '5c': [2020, 2026], '10c': [2020, 2026], '20c': [2020, 2026], '50c': [2020, 2026], '1e': [2020, 2026], '2e': [2020, 2026] } }
+    ];
+
+    const DENOMINATIONS = ['5c', '10c', '20c', '50c', '1e', '2e'];
+    const BANKNOTES = ['5', '10', '20', '50', '100', '200', '500'];
+    const COIN_VALUES = { '5c': 0.05, '10c': 0.10, '20c': 0.20, '50c': 0.50, '1e': 1.00, '2e': 2.00 };
+    const NOTE_VALUES = { '5': 5.00, '10': 10.00, '20': 20.00, '50': 50.00, '100': 100.00, '200': 200.00, '500': 500.00 };
+    const COIN_IMAGES = {
+      '5c': 'https://upload.wikimedia.org/wikipedia/commons/3/30/Euro_5_cent_Re.jpg',
+      '10c': 'https://upload.wikimedia.org/wikipedia/commons/2/2f/Euro_10_cent_Re.jpg',
+      '20c': 'https://upload.wikimedia.org/wikipedia/commons/8/8b/Euro_20_cent_Re.jpg',
+      '50c': 'https://upload.wikimedia.org/wikipedia/commons/b/b3/Euro_50_cent_Re.jpg',
+      '1e': 'https://upload.wikimedia.org/wikipedia/commons/c/ca/Euro_1_Re.jpg',
+      '2e': 'https://upload.wikimedia.org/wikipedia/commons/e/e8/Euro_2_Re.jpg'
+    };
+    const NOTE_IMAGES = {
+      '5': 'https://upload.wikimedia.org/wikipedia/commons/e/e5/Euro_5_obv.jpg',
+      '10': 'https://upload.wikimedia.org/wikipedia/commons/d/d0/Euro_10_obv.jpg',
+      '20': 'https://upload.wikimedia.org/wikipedia/commons/1/1a/Euro_20_obv.jpg',
+      '50': 'https://upload.wikimedia.org/wikipedia/commons/8/88/Euro_50_obv.jpg',
+      '100': 'https://upload.wikimedia.org/wikipedia/commons/6/6f/Euro_100_obv.jpg',
+      '200': 'https://upload.wikimedia.org/wikipedia/commons/5/5a/Euro_200_obv.jpg',
+      '500': 'https://upload.wikimedia.org/wikipedia/commons/b/b0/Euro_500_obv.jpg'
+    };
+
+    // State
+    let collection = {}; // { "AT_coins_5c_2007": quantity, "AT_notes_5": quantity, ... }
+    let selectedCountry = null;
+    let selectedDenom = null;
+    let currentType = 'coins'; // 'coins' or 'notes'
+
+    const defaultConfig = {
+      collection_title: 'My Euro Collection',
+      font_family: 'DM Sans',
+      font_size: 16
+    };
+
+    // Load from localStorage
+    function loadCollection() {
+      const saved = localStorage.getItem('euroCollection');
+      collection = saved ? JSON.parse(saved) : {};
+    }
+
+    // Save to localStorage
+    function saveCollection() {
+      localStorage.setItem('euroCollection', JSON.stringify(collection));
+    }
+
+    // Get key for a coin
+    function getKey(country, type, denom, year = null) {
+      if (type === 'coins') {
+        return `${country}_coins_${denom}_${year}`;
+      } else {
+        return `${country}_notes_${denom}`;
+      }
+    }
+
+    // Get quantity
+    function getQuantity(country, type, denom, year = null) {
+      return collection[getKey(country, type, denom, year)] || 0;
+    }
+
+    // Update quantity
+    function updateQuantity(country, type, denom, delta, year = null) {
+      const key = getKey(country, type, denom, year);
+      const current = collection[key] || 0;
+      const newQty = Math.max(0, current + delta);
+      
+      if (newQty === 0) {
+        delete collection[key];
+      } else {
+        collection[key] = newQty;
+      }
+      
+      saveCollection();
+      renderMatrix();
+      if (currentType === 'coins') {
+        updateCoinStats();
+      } else {
+        updateNoteStats();
+      }
+      updateTotals();
+    }
+
+    // Select country
+    function selectCountry(countryCode) {
+      selectedCountry = countryCode;
+      selectedDenom = null;
+      renderCountryDetail();
+      updateCountrySelectorUI();
+    }
+
+    // Select denomination
+    function selectDenom(denom) {
+      selectedDenom = denom;
+      renderMatrix();
+    }
+
+    // Switch type
+    function switchType(type) {
+      currentType = type;
+      selectedDenom = null;
+      document.getElementById('coins-view').classList.toggle('hidden', type !== 'coins');
+      document.getElementById('notes-view').classList.toggle('hidden', type !== 'notes');
+      document.getElementById('type-coins-btn').classList.toggle('bg-amber-500', type === 'coins');
+      document.getElementById('type-coins-btn').classList.toggle('bg-slate-800', type !== 'coins');
+      document.getElementById('type-coins-btn').classList.toggle('hover:bg-amber-600', type === 'coins');
+      document.getElementById('type-coins-btn').classList.toggle('hover:bg-slate-700', type !== 'coins');
+      document.getElementById('type-coins-btn').classList.toggle('text-white', type === 'coins');
+      document.getElementById('type-coins-btn').classList.toggle('text-slate-300', type !== 'coins');
+      document.getElementById('type-coins-btn').classList.toggle('border-amber-400', type === 'coins');
+      document.getElementById('type-coins-btn').classList.toggle('border-slate-600', type !== 'coins');
+      document.getElementById('type-notes-btn').classList.toggle('bg-amber-500', type === 'notes');
+      document.getElementById('type-notes-btn').classList.toggle('bg-slate-800', type === 'notes');
+      document.getElementById('type-notes-btn').classList.toggle('hover:bg-amber-600', type === 'notes');
+      document.getElementById('type-notes-btn').classList.toggle('hover:bg-slate-700', type === 'notes');
+      document.getElementById('type-notes-btn').classList.toggle('text-white', type === 'notes');
+      document.getElementById('type-notes-btn').classList.toggle('text-slate-300', type === 'notes');
+      document.getElementById('type-notes-btn').classList.toggle('border-amber-400', type === 'notes');
+      document.getElementById('type-notes-btn').classList.toggle('border-slate-600', type === 'notes');
+      renderCountryDetail();
+      updateTotals();
+    }
+
+    // Element SDK config change
+    async function onConfigChange(config) {
+      const title = config.collection_title || defaultConfig.collection_title;
+      document.getElementById('main-title').textContent = title;
+      
+      const font = config.font_family || defaultConfig.font_family;
+      document.body.style.fontFamily = `${font}, sans-serif`;
+      
+      const fontSize = config.font_size || defaultConfig.font_size;
+      document.body.style.fontSize = `${fontSize}px`;
+    }
+
+    // Show modal for bulk add
+    function showAddModal(country, type, denom, year = null) {
+      const key = getKey(country, type, denom, year);
+      const current = collection[key] || 0;
+      const displayDenom = type === 'coins' ? `€${denom.replace('e', '')}` : `€${denom}`;
+      const displayYear = type === 'coins' ? ` (${year})` : '';
+      
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-slate-900 rounded-2xl p-6 max-w-sm w-full border border-white/10">
+          <h3 class="text-xl font-bold text-white mb-2">${country} - ${displayDenom}${displayYear}</h3>
+          <p class="text-slate-400 text-sm mb-4">Current: ${current}</p>
+          <input 
+            type="number" 
+            class="qty-input w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 mb-4"
+            placeholder="Enter quantity"
+            value="${current}"
+            min="0"
+          >
+          <div class="flex gap-2">
+            <button class="save-modal-btn flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg transition-all">Save</button>
+            <button class="cancel-modal-btn flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-all">Cancel</button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      const input = modal.querySelector('.qty-input');
+      input.focus();
+      input.select();
+      
+      const handleSave = () => {
+        const newQty = parseInt(input.value) || 0;
+        if (newQty === 0) {
+          delete collection[key];
+        } else {
+          collection[key] = newQty;
+        }
+        saveCollection();
+        renderCountryDetail();
+        updateTotals();
+        modal.remove();
+      };
+      
+      modal.querySelector('.save-modal-btn').addEventListener('click', handleSave);
+      modal.querySelector('.cancel-modal-btn').addEventListener('click', () => modal.remove());
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleSave();
+      });
+    }
+
+    // Render coin card (compact)
+    function renderCoinCard(country, denom, year) {
+      const qty = getQuantity(country, 'coins', denom, year);
+      const img = COIN_IMAGES[denom];
+      
+      return `
+        <div class="coin-card bg-slate-800/50 border border-slate-700 rounded-lg p-2 hover:bg-slate-800 cursor-pointer" onclick="showAddModal('${country}', 'coins', '${denom}', ${year})">
+          <img src="${img}" alt="${denom}" class="w-full h-16 rounded object-cover mb-1" loading="lazy" onerror="this.style.background='#4b5563'; this.alt='${denom}';">
+          <div class="text-center">
+            <div class="text-slate-300 text-xs font-medium">${year}</div>
+            <div class="text-white text-sm font-semibold">${qty}</div>
+            <div class="flex gap-1 mt-1 justify-center">
+              <button class="dec-btn w-5 h-5 rounded bg-red-500/30 hover:bg-red-500/50 text-red-300 text-xs font-bold transition-all" onclick="event.stopPropagation(); updateQuantity('${country}', 'coins', '${denom}', -1, ${year})">−</button>
+              <button class="inc-btn w-5 h-5 rounded bg-green-500/30 hover:bg-green-500/50 text-green-300 text-xs font-bold transition-all" onclick="event.stopPropagation(); updateQuantity('${country}', 'coins', '${denom}', 1, ${year})">+</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Render banknote card (compact)
+    function renderNoteCard(country, denom) {
+      const qty = getQuantity(country, 'notes', denom);
+      const img = NOTE_IMAGES[denom];
+      
+      return `
+        <div class="coin-card bg-slate-800/50 border border-slate-700 rounded-lg p-2 hover:bg-slate-800 cursor-pointer" onclick="showAddModal('${country}', 'notes', '${denom}')">
+          <img src="${img}" alt="€${denom}" class="w-full h-16 rounded object-cover mb-1" loading="lazy" onerror="this.style.background='#4b5563'; this.alt='€${denom}';">
+          <div class="text-center">
+            <div class="text-slate-300 text-xs font-medium">€${denom}</div>
+            <div class="text-white text-sm font-semibold">${qty}</div>
+            <div class="flex gap-1 mt-1 justify-center">
+              <button class="dec-btn w-5 h-5 rounded bg-red-500/30 hover:bg-red-500/50 text-red-300 text-xs font-bold transition-all" onclick="event.stopPropagation(); updateQuantity('${country}', 'notes', '${denom}', -1)">−</button>
+              <button class="inc-btn w-5 h-5 rounded bg-green-500/30 hover:bg-green-500/50 text-green-300 text-xs font-bold transition-all" onclick="event.stopPropagation(); updateQuantity('${country}', 'notes', '${denom}', 1)">+</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Render matrix (grid of coins by year)
+    function renderMatrix() {
+      if (!selectedCountry) {
+        const container = currentType === 'coins' ? document.getElementById('coin-matrix-container') : document.getElementById('note-matrix-container');
+        container.innerHTML = '<p class="text-slate-400 text-center py-8">Select a denomination to view items</p>';
+        return;
+      }
+
+      const container = currentType === 'coins' ? document.getElementById('coin-matrix-container') : document.getElementById('note-matrix-container');
+      
+      if (currentType === 'coins') {
+        if (!selectedDenom) {
+          container.innerHTML = '<p class="text-slate-400 text-center py-8">Select a denomination to view coins</p>';
+          return;
+        }
+
+        const countryData = COUNTRIES.find(c => c.code === selectedCountry);
+        const denoms = countryData.denominations;
+        const [startYear, endYear] = denoms[selectedDenom];
+        
+        let html = '<div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">';
+        
+        for (let year = startYear; year <= endYear; year++) {
+          html += renderCoinCard(selectedCountry, selectedDenom, year);
+        }
+        
+        html += '</div>';
+        container.innerHTML = html;
+      } else {
+        let html = '<div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-3">';
+        
+        BANKNOTES.forEach(denom => {
+          html += renderNoteCard(selectedCountry, denom);
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+      }
+    }
+
+    // Render country selector buttons
+    function renderCountrySelector() {
+      const container = document.getElementById('country-selector');
+      container.innerHTML = COUNTRIES.map(country => {
+        const isSelected = selectedCountry === country.code;
+        return `
+          <button onclick="selectCountry('${country.code}')" class="country-btn p-3 rounded-lg transition-all text-center ${isSelected ? 'bg-amber-500/50 border-amber-400 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-800/70'} border">
+            <div class="text-2xl mb-1">${country.flag}</div>
+            <div class="text-xs font-medium">${country.code}</div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    // Update country selector UI
+    function updateCountrySelectorUI() {
+      renderCountrySelector();
+    }
+
+    // Render denomination tabs (coins only)
+    function renderDenomTabs() {
+      const container = document.getElementById('coin-denomination-tabs');
+      
+      if (!selectedCountry || currentType !== 'coins') {
+        container.innerHTML = '';
+        return;
+      }
+
+      const countryData = COUNTRIES.find(c => c.code === selectedCountry);
+      const denoms = countryData.denominations;
+      
+      let html = '';
+      DENOMINATIONS.forEach(denom => {
+        if (denoms[denom]) {
+          const isSelected = selectedDenom === denom;
+          html += `
+            <button onclick="selectDenom('${denom}')" class="denom-tab px-4 py-2 rounded-lg transition-all whitespace-nowrap ${isSelected ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'} border ${isSelected ? 'border-amber-400' : 'border-slate-700'}">
+              €${denom.replace('e', '')}
+            </button>
+          `;
+        }
+      });
+      
+      container.innerHTML = html;
+    }
+
+    // Update coin statistics
+    function updateCoinStats() {
+      if (!selectedCountry) {
+        DENOMINATIONS.forEach(denom => {
+          const key = denom === '1e' ? '1e' : (denom === '2e' ? '2e' : denom.replace('c', ''));
+          document.getElementById(`stat-${key}`).textContent = '0';
+        });
+        document.getElementById('stat-coin-total-value').textContent = '€0';
+        document.getElementById('stat-coin-total-coins').textContent = '0 coins';
+        return;
+      }
+
+      const countryData = COUNTRIES.find(c => c.code === selectedCountry);
+      let totalValue = 0;
+      let totalCount = 0;
+
+      DENOMINATIONS.forEach(denom => {
+        const denoms = countryData.denominations;
+        if (denoms[denom]) {
+          const [startYear, endYear] = denoms[denom];
+          let count = 0;
+          
+          for (let year = startYear; year <= endYear; year++) {
+            count += getQuantity(selectedCountry, 'coins', denom, year);
+          }
+          
+          const key = denom === '1e' ? '1e' : (denom === '2e' ? '2e' : denom.replace('c', ''));
+          document.getElementById(`stat-${key}`).textContent = count;
+          totalValue += COIN_VALUES[denom] * count;
+          totalCount += count;
+        }
+      });
+
+      document.getElementById('stat-coin-total-value').textContent = `€${totalValue.toFixed(2)}`;
+      document.getElementById('stat-coin-total-coins').textContent = `${totalCount} coin${totalCount !== 1 ? 's' : ''}`;
+    }
+
+    // Update banknote statistics
+    function updateNoteStats() {
+      if (!selectedCountry) {
+        BANKNOTES.forEach(denom => {
+          document.getElementById(`stat-${denom}note`).textContent = '0';
+        });
+        document.getElementById('stat-note-total-value').textContent = '€0';
+        document.getElementById('stat-note-total-notes').textContent = '0 notes';
+        return;
+      }
+
+      let totalValue = 0;
+      let totalCount = 0;
+
+      BANKNOTES.forEach(denom => {
+        const count = getQuantity(selectedCountry, 'notes', denom);
+        document.getElementById(`stat-${denom}note`).textContent = count;
+        totalValue += NOTE_VALUES[denom] * count;
+        totalCount += count;
+      });
+
+      document.getElementById('stat-note-total-value').textContent = `€${totalValue.toFixed(2)}`;
+      document.getElementById('stat-note-total-notes').textContent = `${totalCount} note${totalCount !== 1 ? 's' : ''}`;
+    }
+
+    // Render country detail view
+    function renderCountryDetail() {
+      renderCountrySelector();
+      
+      if (currentType === 'coins') {
+        const coinsView = document.getElementById('coins-view');
+        
+        if (!selectedCountry) {
+          document.getElementById('coin-name').textContent = 'Select a country';
+          document.getElementById('coin-code').textContent = 'Choose from the list above';
+          document.getElementById('coin-flag').textContent = '🪙';
+          document.getElementById('coin-denomination-tabs').innerHTML = '';
+          document.getElementById('coin-matrix-container').innerHTML = '<p class="text-slate-400 text-center py-8">Select a denomination to view coins</p>';
+          updateCoinStats();
+          return;
+        }
+
+        const countryData = COUNTRIES.find(c => c.code === selectedCountry);
+        document.getElementById('coin-flag').textContent = countryData.flag;
+        document.getElementById('coin-name').textContent = countryData.name;
+        document.getElementById('coin-code').textContent = countryData.code;
+        
+        renderDenomTabs();
+        renderMatrix();
+        updateCoinStats();
+      } else {
+        const notesView = document.getElementById('notes-view');
+        
+        if (!selectedCountry) {
+          document.getElementById('note-name').textContent = 'Select a country';
+          document.getElementById('note-code').textContent = 'Choose from the list above';
+          document.getElementById('note-flag').textContent = '💵';
+          document.getElementById('note-matrix-container').innerHTML = '<p class="text-slate-400 text-center py-8">Click on a banknote to add to your collection</p>';
+          updateNoteStats();
+          return;
+        }
+
+        const countryData = COUNTRIES.find(c => c.code === selectedCountry);
+        document.getElementById('note-flag').textContent = countryData.flag;
+        document.getElementById('note-name').textContent = countryData.name;
+        document.getElementById('note-code').textContent = countryData.code;
+        
+        renderMatrix();
+        updateNoteStats();
+      }
+    }
+
+    // Initialize
+    function init() {
+      // Element SDK
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange,
+          mapToCapabilities: (config) => ({
+            recolorables: [],
+            borderables: [],
+            fontEditable: {
+              get: () => config.font_family || defaultConfig.font_family,
+              set: (value) => window.elementSdk.setConfig({ font_family: value })
+            },
+            fontSizeable: {
+              get: () => config.font_size || defaultConfig.font_size,
+              set: (value) => window.elementSdk.setConfig({ font_size: value })
+            }
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ['collection_title', config.collection_title || defaultConfig.collection_title]
+          ])
+        });
+      }
+
+      // Load and render
+      loadCollection();
+      renderCountryDetail();
+      updateTotals();
+
+      // Type switch buttons
+      document.getElementById('type-coins-btn').addEventListener('click', () => switchType('coins'));
+      document.getElementById('type-notes-btn').addEventListener('click', () => switchType('notes'));
+
+      // Reset button
+      document.getElementById('reset-btn').addEventListener('click', () => {
+        document.getElementById('reset-btn').classList.add('hidden');
+        document.getElementById('reset-confirm').classList.remove('hidden');
+      });
+
+      document.getElementById('confirm-reset').addEventListener('click', () => {
+        collection = {};
+        saveCollection();
+        selectedCountry = null;
+        selectedDenom = null;
+        document.getElementById('reset-confirm').classList.add('hidden');
+        document.getElementById('reset-btn').classList.remove('hidden');
+        renderCountryDetail();
+        updateTotals();
+      });
+      
+      document.getElementById('cancel-reset').addEventListener('click', () => {
+        document.getElementById('reset-confirm').classList.add('hidden');
+        document.getElementById('reset-btn').classList.remove('hidden');
+      });
+    }
+
+    // Update totals
+    function updateTotals() {
+      let totalValue = 0;
+      let totalItems = 0;
+      
+      Object.entries(collection).forEach(([key, qty]) => {
+        const parts = key.split('_');
+        const type = parts[1];
+        const denom = parts[2];
+        
+        if (type === 'coins') {
+          totalValue += COIN_VALUES[denom] * qty;
+        } else {
+          totalValue += NOTE_VALUES[denom] * qty;
+        }
+        totalItems += qty;
+      });
+      
+      document.getElementById('grand-total').textContent = `€${totalValue.toFixed(2)}`;
+      document.getElementById('coins-count').textContent = `${totalItems} item${totalItems !== 1 ? 's' : ''} total`;
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9dc450e3d1cb5b8d',t:'MTc3MzUwMjE4OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html><!doctype html>
+<html lang="en" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
