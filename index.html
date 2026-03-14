@@ -29,7 +29,17 @@
     th { background: rgba(255,255,255,0.05); font-weight: 600; color: #ffd700; }
     td { color: white; }
     .year-col { min-width: 80px; }
-    .denom-col { background: rgba(255,255,255,0.02); font-weight: 500; }
+    .denom-col { background: rgba(255,255,255,0.02); font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+    .info-btn { background: rgba(255,255,255,0.2); border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; transition: 0.2s; }
+    .info-btn:hover { background: rgba(255,255,255,0.4); }
+    /* Coin color circles */
+    .coin-color {
+      width: 30px; height: 30px; border-radius: 50%; display: inline-block;
+      background: linear-gradient(135deg, #b87333, #e0a64a); /* copper */
+    }
+    .coin-color.gold { background: linear-gradient(135deg, #ffd700, #f0b000); }
+    .coin-color.silver { background: linear-gradient(135deg, #c0c0c0, #a0a0a0); }
+    .coin-color.bi { background: radial-gradient(circle at 30% 30%, #ffd700, #c0c0c0 70%); }
   </style>
 </head>
 <body class="h-full">
@@ -98,7 +108,7 @@
       </div>
     </div>
     <footer class="text-center mt-8 text-slate-500 text-sm">
-      <p>Click +/- to adjust quantities</p>
+      <p>Click +/- to adjust quantities | ℹ️ for coin reverse info</p>
     </footer>
   </div>
 </div>
@@ -178,14 +188,38 @@
     { code: 'ES', name: 'Spain', startYear: 2002 }
   ];
 
-  // Denominations for coins (5c to €2)
+  // Denominations for coins (5c to €2) with reverse info
   const COIN_DENOMS = [
-    { id: '5c', label: '5¢', value: 0.05 },
-    { id: '10c', label: '10¢', value: 0.10 },
-    { id: '20c', label: '20¢', value: 0.20 },
-    { id: '50c', label: '50¢', value: 0.50 },
-    { id: '1e', label: '€1', value: 1.00 },
-    { id: '2e', label: '€2', value: 2.00 }
+    { 
+      id: '5c', label: '5¢', value: 0.05,
+      reverse: 'Common reverse (since 2007): Globe with Europe, value "5 CENT".\nOlder coins (2002-2006): Map of EU15.',
+      colorClass: 'coin-color' // copper
+    },
+    { 
+      id: '10c', label: '10¢', value: 0.10,
+      reverse: 'Common reverse (since 2007): Globe with Europe, value "10 CENT".\nOlder coins (2002-2006): Map of EU15.',
+      colorClass: 'coin-color gold' // gold-ish (actually nordic gold)
+    },
+    { 
+      id: '20c', label: '20¢', value: 0.20,
+      reverse: 'Common reverse (since 2007): Globe with Europe, value "20 CENT".\nOlder coins (2002-2006): Map of EU15.',
+      colorClass: 'coin-color gold'
+    },
+    { 
+      id: '50c', label: '50¢', value: 0.50,
+      reverse: 'Common reverse (since 2007): Globe with Europe, value "50 CENT".\nOlder coins (2002-2006): Map of EU15.',
+      colorClass: 'coin-color gold'
+    },
+    { 
+      id: '1e', label: '€1', value: 1.00,
+      reverse: 'Common reverse (since 2007): Europe and Africa, value "1 EURO".\nOlder coins (2002-2006): Map of EU15.',
+      colorClass: 'coin-color bi' // bi-metal
+    },
+    { 
+      id: '2e', label: '€2', value: 2.00,
+      reverse: 'Common reverse (since 2007): Europe and Africa, value "2 EURO".\nOlder coins (2002-2006): Map of EU15.',
+      colorClass: 'coin-color bi'
+    }
   ];
 
   // Banknotes
@@ -200,7 +234,7 @@
   ];
 
   // ==================== STATE ====================
-  let collectionData = []; // items can be: { type: 'coin', country, year, denomination, quantity } or { type: 'note', denomination, quantity }
+  let collectionData = []; // items: { type: 'coin', country, year, denomination, quantity } or { type: 'note', denomination, quantity }
   let isLoading = false;
   let selectedCountryCode = 'SK'; // default
 
@@ -280,6 +314,36 @@
     document.getElementById('country-coins-count').textContent = countryCount;
   }
 
+  // ==================== COIN REVERSE MODAL ====================
+  function showCoinReverseModal(denomId) {
+    const denom = COIN_DENOMS.find(d => d.id === denomId);
+    if (!denom) return;
+
+    // Remove existing modal if any
+    const existing = document.getElementById('coin-info-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'coin-info-modal';
+    modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+      <div class="bg-slate-900 rounded-2xl p-6 max-w-sm w-full border border-white/10">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="${denom.colorClass}"></div>
+          <h3 class="text-xl font-bold text-white">${denom.label} Coin Reverse</h3>
+        </div>
+        <p class="text-white/80 whitespace-pre-line mb-4">${denom.reverse}</p>
+        <button class="close-modal w-full px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg transition-all">Close</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
+    // Close on click outside
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+  }
+
   // ==================== UI RENDERING ====================
   function renderCountrySelector() {
     const select = document.getElementById('country-select');
@@ -299,12 +363,12 @@
       return;
     }
 
-    let html = '<table><thead><tr><th>Denom</th>';
+    let html = '<table><thead><tr><th>Denomination</th>';
     years.forEach(year => html += `<th class="year-col">${year}</th>`);
     html += '</tr></thead><tbody>';
 
     COIN_DENOMS.forEach(denom => {
-      html += `<tr><td class="denom-col font-bold">${denom.label}</td>`;
+      html += `<tr><td class="denom-col"><span>${denom.label}</span> <span class="info-btn" onclick="showCoinReverseModal('${denom.id}')">ℹ️</span></td>`;
       years.forEach(year => {
         const qty = getCoinQuantity(selectedCountryCode, year, denom.id);
         html += `
@@ -557,6 +621,9 @@
       document.getElementById('reset-confirm').classList.add('hidden');
       document.getElementById('reset-btn').classList.remove('hidden');
     });
+
+    // Make showCoinReverseModal globally accessible for onclick
+    window.showCoinReverseModal = showCoinReverseModal;
   }
 
   init();
