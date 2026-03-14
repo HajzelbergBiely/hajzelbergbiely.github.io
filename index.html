@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="en" class="h-full">
- <head>
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Euro Collection Tracker</title>
+  <title>Euro Collection Tracker by Country & Year</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="/_sdk/element_sdk.js"></script>
   <script src="/_sdk/data_sdk.js"></script>
@@ -11,7 +11,6 @@
   <style>
     * { font-family: 'DM Sans', sans-serif; }
     .coin-btn:active { transform: scale(0.95); }
-    .shine { background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%); }
     .loading { opacity: 0.6; pointer-events: none; }
     .demo-badge {
       position: fixed;
@@ -25,449 +24,422 @@
       font-weight: 600;
       z-index: 100;
     }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { padding: 0.5rem; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+    th { background: rgba(255,255,255,0.05); font-weight: 600; color: #ffd700; }
+    td { color: white; }
+    .year-col { min-width: 80px; }
+    .denom-col { background: rgba(255,255,255,0.02); font-weight: 500; }
   </style>
- </head>
- <body class="h-full">
-  <div id="app" class="h-full overflow-auto" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);">
-   <div class="w-full max-w-4xl mx-auto p-6">
+</head>
+<body class="h-full">
+<div id="app" class="h-full overflow-auto" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);">
+  <div class="w-full max-w-6xl mx-auto p-6">
     <!-- Header -->
     <header class="text-center mb-8">
-     <div class="inline-flex items-center gap-3 mb-2"><span class="text-4xl">🪙</span>
-      <h1 id="main-title" class="text-3xl font-bold text-amber-400">My Euro Collection</h1><span class="text-4xl">💶</span>
-     </div>
-     <p class="text-slate-400">Track your coins and banknotes</p>
+      <div class="inline-flex items-center gap-3 mb-2">
+        <span class="text-4xl">🪙</span>
+        <h1 id="main-title" class="text-3xl font-bold text-amber-400">Euro Collection by Country</h1>
+        <span class="text-4xl">💶</span>
+      </div>
+      <p class="text-slate-400">Track your coins by country and year (5c – €2)</p>
     </header>
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-     <div class="bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur rounded-2xl p-5 border border-amber-500/30">
-      <div class="flex items-center gap-3 mb-2"><span class="text-2xl">🪙</span> <span class="text-amber-300 font-medium">Coins</span>
+
+    <!-- Country selector and summary -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="md:col-span-2">
+        <label class="block text-amber-300 mb-2 font-medium">Select Country</label>
+        <select id="country-select" class="w-full p-3 bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-amber-400">
+          <!-- populated by JS -->
+        </select>
       </div>
-      <p id="coins-total" class="text-3xl font-bold text-white">€0.00</p>
-      <p id="coins-count" class="text-sm text-slate-400 mt-1">0 coins</p>
-     </div>
-     <div class="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 backdrop-blur rounded-2xl p-5 border border-emerald-500/30">
-      <div class="flex items-center gap-3 mb-2"><span class="text-2xl">💵</span> <span class="text-emerald-300 font-medium">Banknotes</span>
+      <div class="bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur rounded-2xl p-4 border border-amber-500/30">
+        <div class="text-amber-300 font-medium">Total Coins</div>
+        <p id="country-coins-count" class="text-2xl font-bold text-white">0</p>
       </div>
-      <p id="notes-total" class="text-3xl font-bold text-white">€0.00</p>
-      <p id="notes-count" class="text-sm text-slate-400 mt-1">0 notes</p>
-     </div>
-     <div class="bg-gradient-to-br from-violet-500/20 to-violet-600/10 backdrop-blur rounded-2xl p-5 border border-violet-500/30">
-      <div class="flex items-center gap-3 mb-2"><span class="text-2xl">💰</span> <span class="text-violet-300 font-medium">Grand Total</span>
+      <div class="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 backdrop-blur rounded-2xl p-4 border border-emerald-500/30">
+        <div class="text-emerald-300 font-medium">Total Value</div>
+        <p id="country-total-value" class="text-2xl font-bold text-white">€0.00</p>
       </div>
-      <p id="grand-total" class="text-4xl font-bold text-white">€0.00</p>
-     </div>
     </div>
-    <!-- Coins Section -->
-    <section class="bg-white/5 backdrop-blur rounded-2xl p-6 mb-6 border border-white/10">
-     <h2 class="text-xl font-semibold text-amber-400 mb-4 flex items-center gap-2"><span>🪙</span> Euro Coins</h2>
-     <div id="coins-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+
+    <!-- Coins matrix (country, year, denomination) -->
+    <section class="bg-white/5 backdrop-blur rounded-2xl p-6 mb-6 border border-white/10 overflow-x-auto">
+      <h2 class="text-xl font-semibold text-amber-400 mb-4 flex items-center gap-2">
+        <span>🪙</span> Coins for <span id="selected-country-name">Slovakia</span>
+      </h2>
+      <div id="matrix-container">
+        <!-- dynamic table inserted here -->
+      </div>
     </section>
-    <!-- Banknotes Section -->
-    <section class="bg-white/5 backdrop-blur rounded-2xl p-6 mb-6 border border-white/10">
-     <h2 class="text-xl font-semibold text-emerald-400 mb-4 flex items-center gap-2"><span>💵</span> Euro Banknotes</h2>
-     <div id="notes-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
-    </section>
+
     <!-- Reset Button -->
     <div class="text-center">
-      <button id="reset-btn" class="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl border border-red-500/30 transition-all"> 🗑️ Reset Collection </button>
+      <button id="reset-btn" class="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl border border-red-500/30 transition-all"> 🗑️ Reset All Data </button>
       <div id="reset-confirm" class="hidden mt-3 inline-flex gap-2">
         <button id="confirm-reset" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all">Yes, Reset</button>
         <button id="cancel-reset" class="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-all">Cancel</button>
       </div>
     </div>
-    <!-- Footer -->
     <footer class="text-center mt-8 text-slate-500 text-sm">
-     <p>Click + to add, - to remove from your collection</p>
+      <p>Click + / - to adjust quantity for each year and denomination</p>
     </footer>
-   </div>
   </div>
-  <!-- Demo badge (shown only when using localStorage fallback) -->
-  <div id="demo-badge" class="demo-badge hidden">🔧 Demo Mode (localStorage)</div>
+</div>
+<div id="demo-badge" class="demo-badge hidden">🔧 Demo Mode (localStorage)</div>
 
-  <script>
-    // ==================== MOCK SDK FALLBACK ====================
-    // If the real Data SDK is missing, we create a mock that uses localStorage.
-    (function setupMockSDK() {
-      const STORAGE_KEY = 'euro_collection_data';
-      
-      // Check if real SDK exists
-      if (typeof window.dataSdk !== 'undefined' && window.dataSdk) {
-        console.log('Using real Data SDK');
-        return; // Real SDK present, do nothing
+<script>
+  // ==================== MOCK SDK FALLBACK ====================
+  (function setupMockSDK() {
+    const STORAGE_KEY = 'euro_collection_country_data';
+    if (typeof window.dataSdk !== 'undefined' && window.dataSdk) {
+      console.log('Using real Data SDK');
+      return;
+    }
+    console.warn('Data SDK not found. Using localStorage fallback (demo mode).');
+    document.getElementById('demo-badge').classList.remove('hidden');
+
+    let mockData = [];
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) mockData = JSON.parse(saved);
+    } catch (e) { console.error('Failed to load from localStorage', e); }
+
+    window.dataSdk = {
+      async init(handler) {
+        this.handler = handler;
+        setTimeout(() => {
+          if (this.handler?.onDataChanged) this.handler.onDataChanged(mockData);
+        }, 0);
+        return { isOk: true };
+      },
+      async create(item) {
+        if (!item.id) item.id = Date.now() + Math.random().toString(36).substr(2, 9);
+        mockData.push(item);
+        this._saveAndNotify();
+        return { isOk: true, data: item };
+      },
+      async update(item) {
+        const index = mockData.findIndex(d => d.id === item.id);
+        if (index !== -1) mockData[index] = item;
+        else mockData.push(item);
+        this._saveAndNotify();
+        return { isOk: true };
+      },
+      async delete(item) {
+        mockData = mockData.filter(d => d.id !== item.id);
+        this._saveAndNotify();
+        return { isOk: true };
+      },
+      _saveAndNotify() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(mockData)); } catch (e) {}
+        if (this.handler?.onDataChanged) this.handler.onDataChanged(mockData);
       }
-
-      console.warn('Data SDK not found. Using localStorage fallback (demo mode).');
-      document.getElementById('demo-badge').classList.remove('hidden');
-
-      // Load initial data from localStorage
-      let mockData = [];
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) mockData = JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to load from localStorage', e);
-      }
-
-      // Mock SDK object
-      window.dataSdk = {
-        // Mimics the real SDK init: expects a handler with onDataChanged
-        async init(handler) {
-          this.handler = handler;
-          // Simulate initial data load
-          setTimeout(() => {
-            if (this.handler && this.handler.onDataChanged) {
-              this.handler.onDataChanged(mockData);
-            }
-          }, 0);
-          return { isOk: true };
-        },
-
-        async create(item) {
-          // Add unique id if not present (real SDK does this)
-          if (!item.id) item.id = Date.now() + Math.random().toString(36).substr(2, 9);
-          mockData.push(item);
-          this._saveAndNotify();
-          return { isOk: true, data: item };
-        },
-
-        async update(item) {
-          const index = mockData.findIndex(d => d.id === item.id);
-          if (index !== -1) {
-            mockData[index] = item;
-          } else {
-            // If not found, treat as create
-            mockData.push(item);
-          }
-          this._saveAndNotify();
-          return { isOk: true };
-        },
-
-        async delete(item) {
-          mockData = mockData.filter(d => d.id !== item.id);
-          this._saveAndNotify();
-          return { isOk: true };
-        },
-
-        _saveAndNotify() {
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(mockData));
-          } catch (e) {
-            console.error('Failed to save to localStorage', e);
-          }
-          if (this.handler && this.handler.onDataChanged) {
-            this.handler.onDataChanged(mockData);
-          }
-        }
-      };
-    })();
-
-    // ==================== APP CODE ====================
-    const COINS = [
-      { id: '1c', label: '1¢', value: 0.01, color: 'from-amber-700 to-amber-800' },
-      { id: '2c', label: '2¢', value: 0.02, color: 'from-amber-700 to-amber-800' },
-      { id: '5c', label: '5¢', value: 0.05, color: 'from-amber-700 to-amber-800' },
-      { id: '10c', label: '10¢', value: 0.10, color: 'from-yellow-500 to-yellow-600' },
-      { id: '20c', label: '20¢', value: 0.20, color: 'from-yellow-500 to-yellow-600' },
-      { id: '50c', label: '50¢', value: 0.50, color: 'from-yellow-500 to-yellow-600' },
-      { id: '1e', label: '€1', value: 1.00, color: 'from-yellow-400 to-amber-500' },
-      { id: '2e', label: '€2', value: 2.00, color: 'from-slate-400 to-yellow-500' }
-    ];
-
-    const BANKNOTES = [
-      { id: '5n', label: '€5', value: 5, color: 'from-gray-400 to-gray-500' },
-      { id: '10n', label: '€10', value: 10, color: 'from-red-400 to-red-500' },
-      { id: '20n', label: '€20', value: 20, color: 'from-blue-400 to-blue-500' },
-      { id: '50n', label: '€50', value: 50, color: 'from-orange-400 to-orange-500' },
-      { id: '100n', label: '€100', value: 100, color: 'from-green-400 to-green-500' },
-      { id: '200n', label: '€200', value: 200, color: 'from-yellow-400 to-yellow-500' },
-      { id: '500n', label: '€500', value: 500, color: 'from-purple-400 to-purple-500' }
-    ];
-
-    // State
-    let collectionData = [];
-    let isLoading = false;
-
-    const defaultConfig = {
-      collection_title: 'My Euro Collection',
-      background_color: '#1a1a2e',
-      accent_color: '#f59e0b',
-      text_color: '#ffffff',
-      font_family: 'DM Sans',
-      font_size: 16
     };
+  })();
 
-    function getQuantity(denomination) {
-      const item = collectionData.find(d => d.denomination === denomination);
-      return item ? item.quantity : 0;
+  // ==================== CONSTANTS ====================
+  const CURRENT_YEAR = 2026;
+  const COUNTRIES = [
+    { code: 'AT', name: 'Austria', startYear: 2002 },
+    { code: 'BE', name: 'Belgium', startYear: 2002 },
+    { code: 'CY', name: 'Cyprus', startYear: 2008 },
+    { code: 'EE', name: 'Estonia', startYear: 2011 },
+    { code: 'FI', name: 'Finland', startYear: 2002 },
+    { code: 'FR', name: 'France', startYear: 2002 },
+    { code: 'DE', name: 'Germany', startYear: 2002 },
+    { code: 'GR', name: 'Greece', startYear: 2001 },
+    { code: 'IE', name: 'Ireland', startYear: 2002 },
+    { code: 'IT', name: 'Italy', startYear: 2002 },
+    { code: 'LV', name: 'Latvia', startYear: 2014 },
+    { code: 'LT', name: 'Lithuania', startYear: 2015 },
+    { code: 'LU', name: 'Luxembourg', startYear: 2002 },
+    { code: 'MT', name: 'Malta', startYear: 2008 },
+    { code: 'NL', name: 'Netherlands', startYear: 2002 },
+    { code: 'PT', name: 'Portugal', startYear: 2002 },
+    { code: 'SK', name: 'Slovakia', startYear: 2009 },
+    { code: 'SI', name: 'Slovenia', startYear: 2007 },
+    { code: 'ES', name: 'Spain', startYear: 2002 }
+  ];
+
+  // Denominations from 5c to €2 (exclude 1c, 2c)
+  const DENOMINATIONS = [
+    { id: '5c', label: '5¢', value: 0.05 },
+    { id: '10c', label: '10¢', value: 0.10 },
+    { id: '20c', label: '20¢', value: 0.20 },
+    { id: '50c', label: '50¢', value: 0.50 },
+    { id: '1e', label: '€1', value: 1.00 },
+    { id: '2e', label: '€2', value: 2.00 }
+  ];
+
+  // ==================== STATE ====================
+  let collectionData = [];               // each item: { id?, country, year, denomination, quantity }
+  let isLoading = false;
+  let selectedCountryCode = 'SK';        // default Slovakia
+
+  const defaultConfig = {
+    collection_title: 'Euro Collection by Country',
+    background_color: '#1a1a2e',
+    accent_color: '#f59e0b',
+    text_color: '#ffffff',
+    font_family: 'DM Sans',
+    font_size: 16
+  };
+
+  // ==================== HELPER FUNCTIONS ====================
+  function getCountryByCode(code) {
+    return COUNTRIES.find(c => c.code === code) || COUNTRIES[0];
+  }
+
+  function getQuantity(country, year, denomination) {
+    const item = collectionData.find(d => d.country === country && d.year === year && d.denomination === denomination);
+    return item ? item.quantity : 0;
+  }
+
+  // Returns array of years for a country (from startYear to CURRENT_YEAR)
+  function getYearsForCountry(countryCode) {
+    const country = getCountryByCode(countryCode);
+    const years = [];
+    for (let y = country.startYear; y <= CURRENT_YEAR; y++) years.push(y);
+    return years;
+  }
+
+  // Calculate totals for selected country
+  function getCountryTotals(countryCode) {
+    let totalCoins = 0;
+    let totalValue = 0;
+    collectionData.forEach(item => {
+      if (item.country === countryCode) {
+        const denom = DENOMINATIONS.find(d => d.id === item.denomination);
+        if (denom) {
+          totalCoins += item.quantity;
+          totalValue += denom.value * item.quantity;
+        }
+      }
+    });
+    return { totalCoins, totalValue };
+  }
+
+  // ==================== UI RENDERING ====================
+  function renderCountrySelector() {
+    const select = document.getElementById('country-select');
+    select.innerHTML = COUNTRIES.map(c => 
+      `<option value="${c.code}" ${c.code === selectedCountryCode ? 'selected' : ''}>${c.name} (€ since ${c.startYear})</option>`
+    ).join('');
+  }
+
+  function renderMatrix() {
+    const container = document.getElementById('matrix-container');
+    const country = getCountryByCode(selectedCountryCode);
+    document.getElementById('selected-country-name').textContent = country.name;
+
+    const years = getYearsForCountry(selectedCountryCode);
+    if (years.length === 0) {
+      container.innerHTML = '<p class="text-white/50">No years available for this country.</p>';
+      return;
     }
 
-    function showAddModal(denomination, type) {
-      const item = type === 'coin' ? COINS.find(c => c.id === denomination) : BANKNOTES.find(n => n.id === denomination);
-      
-      const modal = document.createElement('div');
-      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
-      modal.innerHTML = `
-        <div class="bg-slate-900 rounded-2xl p-6 max-w-sm w-full border border-white/10">
-          <h3 class="text-xl font-bold text-white mb-4">Add ${item.label}</h3>
-          <input 
-            type="number" 
-            class="qty-input w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 mb-4"
-            placeholder="Enter quantity"
-            min="1"
-            autofocus
-          >
-          <div class="flex gap-2">
-            <button 
-              class="add-modal-btn flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg transition-all"
-              data-denomination="${denomination}"
-              data-type="${type}"
-            >Add</button>
-            <button 
-              class="cancel-modal-btn flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-all"
-            >Cancel</button>
-          </div>
-        </div>
-      `;
-      
-      document.body.appendChild(modal);
-      const input = modal.querySelector('.qty-input');
-      input.focus();
-      
-      const addBtn = modal.querySelector('.add-modal-btn');
-      const cancelBtn = modal.querySelector('.cancel-modal-btn');
-      
-      const handleAdd = async () => {
-        const qty = parseInt(input.value) || 0;
-        if (qty <= 0) {
-          input.value = '';
-          input.focus();
+    // Build table: first column denominations, then each year
+    let html = '<table><thead><tr><th>Denom</th>';
+    years.forEach(year => html += `<th class="year-col">${year}</th>`);
+    html += '</tr></thead><tbody>';
+
+    DENOMINATIONS.forEach(denom => {
+      html += `<tr><td class="denom-col font-bold">${denom.label}</td>`;
+      years.forEach(year => {
+        const qty = getQuantity(selectedCountryCode, year, denom.id);
+        html += `
+          <td>
+            <div class="flex items-center justify-center gap-1">
+              <button class="decrease-btn w-6 h-6 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center"
+                data-country="${selectedCountryCode}"
+                data-year="${year}"
+                data-denom="${denom.id}"
+                ${qty === 0 ? 'disabled style="opacity:0.3;cursor:not-allowed"' : ''}>−</button>
+              <span class="w-6 text-white font-medium" id="qty-${selectedCountryCode}-${year}-${denom.id}">${qty}</span>
+              <button class="increase-btn w-6 h-6 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center"
+                data-country="${selectedCountryCode}"
+                data-year="${year}"
+                data-denom="${denom.id}">+</button>
+            </div>
+          </td>`;
+      });
+      html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+
+    // Attach event listeners to buttons
+    document.querySelectorAll('.increase-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const country = btn.dataset.country;
+        const year = parseInt(btn.dataset.year);
+        const denom = btn.dataset.denom;
+        updateQuantity(country, year, denom, 1);
+      });
+    });
+
+    document.querySelectorAll('.decrease-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const country = btn.dataset.country;
+        const year = parseInt(btn.dataset.year);
+        const denom = btn.dataset.denom;
+        updateQuantity(country, year, denom, -1);
+      });
+    });
+  }
+
+  function updateTotals() {
+    const { totalCoins, totalValue } = getCountryTotals(selectedCountryCode);
+    document.getElementById('country-coins-count').textContent = totalCoins;
+    document.getElementById('country-total-value').textContent = `€${totalValue.toFixed(2)}`;
+  }
+
+  // ==================== DATA UPDATE ====================
+  async function updateQuantity(country, year, denomination, delta) {
+    if (isLoading) {
+      alert('Please wait, operation in progress.');
+      return;
+    }
+
+    const existing = collectionData.find(d => d.country === country && d.year === year && d.denomination === denomination);
+    const newQty = (existing ? existing.quantity : 0) + delta;
+    if (newQty < 0) return;
+
+    isLoading = true;
+    document.body.classList.add('loading');
+
+    try {
+      if (existing) {
+        if (newQty === 0) {
+          const result = await window.dataSdk.delete(existing);
+          if (!result.isOk) alert('Delete failed: ' + result.error);
+        } else {
+          const result = await window.dataSdk.update({ ...existing, quantity: newQty });
+          if (!result.isOk) alert('Update failed: ' + result.error);
+        }
+      } else if (newQty > 0) {
+        if (collectionData.length >= 999) {
+          alert('Maximum collection size reached!');
           return;
         }
-        await addFromModal(denomination, type, qty);
-        modal.remove();
-      };
-      
-      addBtn.addEventListener('click', handleAdd);
-      cancelBtn.addEventListener('click', () => modal.remove());
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleAdd();
-      });
+        const result = await window.dataSdk.create({ country, year, denomination, quantity: newQty });
+        if (!result.isOk) alert('Create failed: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      isLoading = false;
+      document.body.classList.remove('loading');
     }
+  }
 
-    async function addFromModal(denomination, type, qty) {
-      await updateQuantity(denomination, type, qty);
-    }
+  async function resetCollection() {
+    if (isLoading || collectionData.length === 0) return;
 
-    function renderCard(item, type) {
-      const qty = getQuantity(item.id);
-      return `
-        <div class="bg-gradient-to-br ${item.color} rounded-xl p-4 relative overflow-hidden shine cursor-pointer group hover:shadow-lg transition-all" onclick="showAddModal('${item.id}', '${type}')">
-          <div class="absolute inset-0 shine pointer-events-none"></div>
-          <div class="relative z-10">
-            <div class="text-2xl font-bold text-white mb-1">${item.label}</div>
-            <div class="text-white/80 text-sm mb-3">×<span id="qty-${item.id}">${qty}</span></div>
-            <div class="flex gap-2">
-              <button 
-                class="decrease-btn coin-btn w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white font-bold transition-all flex items-center justify-center"
-                data-denomination="${item.id}"
-                data-type="${type}"
-                ${qty === 0 ? 'disabled style="opacity:0.3;cursor:not-allowed"' : ''}
-              >−</button>
-              <button 
-                class="increase-btn coin-btn w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white font-bold transition-all flex items-center justify-center"
-                data-denomination="${item.id}"
-                data-type="${type}"
-              >+</button>
-            </div>
-            <div class="text-xs text-white/60 mt-2 group-hover:text-white/90 transition-colors">Click card to bulk add</div>
-          </div>
-        </div>
-      `;
-    }
+    isLoading = true;
+    document.getElementById('confirm-reset').disabled = true;
+    document.body.classList.add('loading');
 
-    function renderCards() {
-      const coinsGrid = document.getElementById('coins-grid');
-      const notesGrid = document.getElementById('notes-grid');
-      
-      coinsGrid.innerHTML = COINS.map(c => renderCard(c, 'coin')).join('');
-      notesGrid.innerHTML = BANKNOTES.map(n => renderCard(n, 'note')).join('');
-      
-      document.querySelectorAll('.increase-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          updateQuantity(btn.dataset.denomination, btn.dataset.type, 1);
-        });
-      });
-      
-      document.querySelectorAll('.decrease-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          updateQuantity(btn.dataset.denomination, btn.dataset.type, -1);
-        });
-      });
-    }
-
-    function updateTotals() {
-      let coinsValue = 0, coinsCount = 0, notesValue = 0, notesCount = 0;
-      collectionData.forEach(item => {
-        if (item.type === 'coin') {
-          const coinRef = COINS.find(c => c.id === item.denomination);
-          if (coinRef) {
-            coinsValue += coinRef.value * item.quantity;
-            coinsCount += item.quantity;
-          }
-        } else {
-          const noteRef = BANKNOTES.find(n => n.id === item.denomination);
-          if (noteRef) {
-            notesValue += noteRef.value * item.quantity;
-            notesCount += item.quantity;
-          }
+    try {
+      for (const item of [...collectionData]) {
+        const result = await window.dataSdk.delete(item);
+        if (!result.isOk) {
+          alert('Reset error: ' + result.error);
+          break;
         }
-      });
-      document.getElementById('coins-total').textContent = `€${coinsValue.toFixed(2)}`;
-      document.getElementById('coins-count').textContent = `${coinsCount} coin${coinsCount !== 1 ? 's' : ''}`;
-      document.getElementById('notes-total').textContent = `€${notesValue.toFixed(2)}`;
-      document.getElementById('notes-count').textContent = `${notesCount} note${notesCount !== 1 ? 's' : ''}`;
-      document.getElementById('grand-total').textContent = `€${(coinsValue + notesValue).toFixed(2)}`;
+      }
+    } catch (error) {
+      alert('Reset failed: ' + error.message);
+    } finally {
+      isLoading = false;
+      document.body.classList.remove('loading');
+      document.getElementById('reset-confirm').classList.add('hidden');
+      document.getElementById('reset-btn').classList.remove('hidden');
+      document.getElementById('confirm-reset').disabled = false;
     }
+  }
 
-    async function updateQuantity(denomination, type, delta) {
-      if (isLoading) {
-        alert('Please wait, operation in progress.');
-        return;
-      }
-      
-      // SDK is guaranteed to exist (real or mock)
-      const existing = collectionData.find(d => d.denomination === denomination);
-      const newQty = (existing ? existing.quantity : 0) + delta;
-      if (newQty < 0) return;
-      
-      isLoading = true;
-      document.body.classList.add('loading');
-      
-      try {
-        if (existing) {
-          if (newQty === 0) {
-            const result = await window.dataSdk.delete(existing);
-            if (!result.isOk) {
-              console.error('Failed to delete:', result.error);
-              alert('Failed to delete: ' + result.error);
-            }
-          } else {
-            const result = await window.dataSdk.update({ ...existing, quantity: newQty });
-            if (!result.isOk) {
-              console.error('Failed to update:', result.error);
-              alert('Failed to update: ' + result.error);
-            }
-          }
-        } else if (newQty > 0) {
-          if (collectionData.length >= 999) {
-            alert('Maximum collection size reached!');
-            return;
-          }
-          const result = await window.dataSdk.create({ denomination, type, quantity: newQty });
-          if (!result.isOk) {
-            console.error('Failed to create:', result.error);
-            alert('Failed to create: ' + result.error);
-          }
-        }
-      } catch (error) {
-        console.error('Unexpected error:', error);
-        alert('An unexpected error occurred: ' + error.message);
-      } finally {
-        isLoading = false;
-        document.body.classList.remove('loading');
-      }
+  // ==================== DATA HANDLER ====================
+  const dataHandler = {
+    onDataChanged(data) {
+      collectionData = data;
+      renderMatrix();   // re-render matrix with updated quantities
+      updateTotals();
     }
+  };
 
-    async function resetCollection() {
-      if (isLoading || collectionData.length === 0) return;
-      
-      isLoading = true;
-      document.getElementById('confirm-reset').disabled = true;
-      document.body.classList.add('loading');
-      
-      try {
-        for (const item of [...collectionData]) {
-          const result = await window.dataSdk.delete(item);
-          if (!result.isOk) {
-            console.error('Failed to delete during reset:', result.error);
-            alert('Error during reset: ' + result.error);
-            break;
+  // ==================== CONFIG HANDLER ====================
+  async function onConfigChange(config) {
+    document.getElementById('main-title').textContent = config.collection_title || defaultConfig.collection_title;
+    document.body.style.fontFamily = (config.font_family || defaultConfig.font_family) + ', sans-serif';
+    document.body.style.fontSize = (config.font_size || defaultConfig.font_size) + 'px';
+  }
+
+  // ==================== INIT ====================
+  async function init() {
+    // Element SDK
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [],
+          borderables: [],
+          fontEditable: {
+            get: () => config.font_family || defaultConfig.font_family,
+            set: (value) => window.elementSdk.setConfig({ font_family: value })
+          },
+          fontSizeable: {
+            get: () => config.font_size || defaultConfig.font_size,
+            set: (value) => window.elementSdk.setConfig({ font_size: value })
           }
-        }
-      } catch (error) {
-        console.error('Reset error:', error);
-        alert('Reset failed: ' + error.message);
-      } finally {
-        isLoading = false;
-        document.body.classList.remove('loading');
-        document.getElementById('reset-confirm').classList.add('hidden');
-        document.getElementById('reset-btn').classList.remove('hidden');
-        document.getElementById('confirm-reset').disabled = false;
-      }
-    }
-
-    const dataHandler = {
-      onDataChanged(data) {
-        collectionData = data;
-        renderCards();
-        updateTotals();
-      }
-    };
-
-    async function onConfigChange(config) {
-      document.getElementById('main-title').textContent = config.collection_title || defaultConfig.collection_title;
-      document.body.style.fontFamily = `${config.font_family || defaultConfig.font_family}, sans-serif`;
-      document.body.style.fontSize = (config.font_size || defaultConfig.font_size) + 'px';
-    }
-
-    async function init() {
-      // Element SDK (optional)
-      if (window.elementSdk) {
-        window.elementSdk.init({
-          defaultConfig,
-          onConfigChange,
-          mapToCapabilities: (config) => ({
-            recolorables: [],
-            borderables: [],
-            fontEditable: {
-              get: () => config.font_family || defaultConfig.font_family,
-              set: (value) => window.elementSdk.setConfig({ font_family: value })
-            },
-            fontSizeable: {
-              get: () => config.font_size || defaultConfig.font_size,
-              set: (value) => window.elementSdk.setConfig({ font_size: value })
-            }
-          }),
-          mapToEditPanelValues: (config) => new Map([
-            ['collection_title', config.collection_title || defaultConfig.collection_title]
-          ])
-        });
-      } else {
-        console.warn('Element SDK not found, using defaults.');
-      }
-
-      // Initialize Data SDK (real or mock)
-      const result = await window.dataSdk.init(dataHandler);
-      if (!result.isOk) {
-        console.error('Failed to initialize Data SDK:', result.error);
-        alert('Failed to initialize Data SDK: ' + result.error);
-      }
-
-      // Reset button handlers
-      document.getElementById('reset-btn').addEventListener('click', () => {
-        document.getElementById('reset-btn').classList.add('hidden');
-        document.getElementById('reset-confirm').classList.remove('hidden');
-      });
-      document.getElementById('confirm-reset').addEventListener('click', resetCollection);
-      document.getElementById('cancel-reset').addEventListener('click', () => {
-        document.getElementById('reset-confirm').classList.add('hidden');
-        document.getElementById('reset-btn').classList.remove('hidden');
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ['collection_title', config.collection_title || defaultConfig.collection_title]
+        ])
       });
     }
 
-    init();
-  </script>
- </body>
+    // Data SDK
+    const result = await window.dataSdk.init(dataHandler);
+    if (!result.isOk) {
+      console.error('Data SDK init failed:', result.error);
+      alert('Data SDK init failed: ' + result.error);
+    }
+
+    // Populate country selector
+    renderCountrySelector();
+
+    // Initial render (matrix will be drawn after data arrives via onDataChanged)
+    // But we need to render something now; data will trigger re-render.
+    renderMatrix();
+    updateTotals();
+
+    // Country change listener
+    document.getElementById('country-select').addEventListener('change', (e) => {
+      selectedCountryCode = e.target.value;
+      renderMatrix();
+      updateTotals();
+    });
+
+    // Reset button handlers
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      document.getElementById('reset-btn').classList.add('hidden');
+      document.getElementById('reset-confirm').classList.remove('hidden');
+    });
+    document.getElementById('confirm-reset').addEventListener('click', resetCollection);
+    document.getElementById('cancel-reset').addEventListener('click', () => {
+      document.getElementById('reset-confirm').classList.add('hidden');
+      document.getElementById('reset-btn').classList.remove('hidden');
+    });
+  }
+
+  init();
+</script>
+</body>
 </html>
