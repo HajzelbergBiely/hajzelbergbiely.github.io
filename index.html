@@ -32,10 +32,9 @@
     .denom-col { background: rgba(255,255,255,0.02); font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: space-between; }
     .info-btn { background: rgba(255,255,255,0.2); border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; transition: 0.2s; }
     .info-btn:hover { background: rgba(255,255,255,0.4); }
-    /* Coin color circles */
     .coin-color {
       width: 30px; height: 30px; border-radius: 50%; display: inline-block;
-      background: linear-gradient(135deg, #b87333, #e0a64a); /* copper */
+      background: linear-gradient(135deg, #b87333, #e0a64a);
     }
     .coin-color.gold { background: linear-gradient(135deg, #ffd700, #f0b000); }
     .coin-color.silver { background: linear-gradient(135deg, #c0c0c0, #a0a0a0); }
@@ -115,7 +114,7 @@
 <div id="demo-badge" class="demo-badge hidden">🔧 Demo Mode (localStorage)</div>
 
 <script>
-  // ==================== MOCK SDK FALLBACK ====================
+  // ==================== MOCK SDK FALLBACK (FIXED) ====================
   (function setupMockSDK() {
     const STORAGE_KEY = 'euro_collection_combined_data';
     if (typeof window.dataSdk !== 'undefined' && window.dataSdk) {
@@ -132,34 +131,58 @@
     } catch (e) { console.error('Failed to load from localStorage', e); }
 
     window.dataSdk = {
+      handler: null, // will be set in init
+
       async init(handler) {
         this.handler = handler;
+        // Simulate initial data load
         setTimeout(() => {
-          if (this.handler?.onDataChanged) this.handler.onDataChanged(mockData);
+          if (this.handler?.onDataChanged) {
+            this.handler.onDataChanged(mockData);
+          }
         }, 0);
         return { isOk: true };
       },
+
       async create(item) {
-        if (!item.id) item.id = Date.now() + Math.random().toString(36).substr(2, 9);
+        if (!item.id) item.id = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         mockData.push(item);
         this._saveAndNotify();
         return { isOk: true, data: item };
       },
+
       async update(item) {
         const index = mockData.findIndex(d => d.id === item.id);
-        if (index !== -1) mockData[index] = item;
-        else mockData.push(item);
+        if (index !== -1) {
+          mockData[index] = item;
+        } else {
+          // If not found, treat as create (should not happen)
+          mockData.push(item);
+        }
         this._saveAndNotify();
         return { isOk: true };
       },
+
       async delete(item) {
         mockData = mockData.filter(d => d.id !== item.id);
         this._saveAndNotify();
         return { isOk: true };
       },
+
       _saveAndNotify() {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(mockData)); } catch (e) {}
-        if (this.handler?.onDataChanged) this.handler.onDataChanged(mockData);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(mockData));
+        } catch (e) {
+          console.error('Failed to save to localStorage', e);
+        }
+        // Notify the handler after a tiny delay to simulate async
+        setTimeout(() => {
+          if (this.handler?.onDataChanged) {
+            this.handler.onDataChanged(mockData);
+          } else {
+            console.warn('No handler registered in mock SDK');
+          }
+        }, 10);
       }
     };
   })();
@@ -188,41 +211,15 @@
     { code: 'ES', name: 'Spain', startYear: 2002 }
   ];
 
-  // Denominations for coins (5c to €2) with reverse info
   const COIN_DENOMS = [
-    { 
-      id: '5c', label: '5¢', value: 0.05,
-      reverse: 'Common reverse (since 2007): Globe with Europe, value "5 CENT".\nOlder coins (2002-2006): Map of EU15.',
-      colorClass: 'coin-color' // copper
-    },
-    { 
-      id: '10c', label: '10¢', value: 0.10,
-      reverse: 'Common reverse (since 2007): Globe with Europe, value "10 CENT".\nOlder coins (2002-2006): Map of EU15.',
-      colorClass: 'coin-color gold' // gold-ish (actually nordic gold)
-    },
-    { 
-      id: '20c', label: '20¢', value: 0.20,
-      reverse: 'Common reverse (since 2007): Globe with Europe, value "20 CENT".\nOlder coins (2002-2006): Map of EU15.',
-      colorClass: 'coin-color gold'
-    },
-    { 
-      id: '50c', label: '50¢', value: 0.50,
-      reverse: 'Common reverse (since 2007): Globe with Europe, value "50 CENT".\nOlder coins (2002-2006): Map of EU15.',
-      colorClass: 'coin-color gold'
-    },
-    { 
-      id: '1e', label: '€1', value: 1.00,
-      reverse: 'Common reverse (since 2007): Europe and Africa, value "1 EURO".\nOlder coins (2002-2006): Map of EU15.',
-      colorClass: 'coin-color bi' // bi-metal
-    },
-    { 
-      id: '2e', label: '€2', value: 2.00,
-      reverse: 'Common reverse (since 2007): Europe and Africa, value "2 EURO".\nOlder coins (2002-2006): Map of EU15.',
-      colorClass: 'coin-color bi'
-    }
+    { id: '5c', label: '5¢', value: 0.05, reverse: 'Common reverse (since 2007): Globe with Europe, value "5 CENT".\nOlder coins (2002-2006): Map of EU15.', colorClass: 'coin-color' },
+    { id: '10c', label: '10¢', value: 0.10, reverse: 'Common reverse (since 2007): Globe with Europe, value "10 CENT".\nOlder coins (2002-2006): Map of EU15.', colorClass: 'coin-color gold' },
+    { id: '20c', label: '20¢', value: 0.20, reverse: 'Common reverse (since 2007): Globe with Europe, value "20 CENT".\nOlder coins (2002-2006): Map of EU15.', colorClass: 'coin-color gold' },
+    { id: '50c', label: '50¢', value: 0.50, reverse: 'Common reverse (since 2007): Globe with Europe, value "50 CENT".\nOlder coins (2002-2006): Map of EU15.', colorClass: 'coin-color gold' },
+    { id: '1e', label: '€1', value: 1.00, reverse: 'Common reverse (since 2007): Europe and Africa, value "1 EURO".\nOlder coins (2002-2006): Map of EU15.', colorClass: 'coin-color bi' },
+    { id: '2e', label: '€2', value: 2.00, reverse: 'Common reverse (since 2007): Europe and Africa, value "2 EURO".\nOlder coins (2002-2006): Map of EU15.', colorClass: 'coin-color bi' }
   ];
 
-  // Banknotes
   const BANKNOTES = [
     { id: '5n', label: '€5', value: 5, color: 'from-gray-400 to-gray-500' },
     { id: '10n', label: '€10', value: 10, color: 'from-red-400 to-red-500' },
@@ -234,9 +231,9 @@
   ];
 
   // ==================== STATE ====================
-  let collectionData = []; // items: { type: 'coin', country, year, denomination, quantity } or { type: 'note', denomination, quantity }
+  let collectionData = [];
   let isLoading = false;
-  let selectedCountryCode = 'SK'; // default
+  let selectedCountryCode = 'SK';
 
   const defaultConfig = {
     collection_title: 'My Euro Collection',
@@ -252,7 +249,6 @@
     return COUNTRIES.find(c => c.code === code) || COUNTRIES[0];
   }
 
-  // Coins
   function getCoinQuantity(country, year, denomination) {
     const item = collectionData.find(d => d.type === 'coin' && d.country === country && d.year === year && d.denomination === denomination);
     return item ? item.quantity : 0;
@@ -265,16 +261,13 @@
     return years;
   }
 
-  // Banknotes
   function getNoteQuantity(denomination) {
     const item = collectionData.find(d => d.type === 'note' && d.denomination === denomination);
     return item ? item.quantity : 0;
   }
 
-  // Totals for summary cards
   function updateTotals() {
     let coinValue = 0, coinCount = 0, noteValue = 0, noteCount = 0;
-
     collectionData.forEach(item => {
       if (item.type === 'coin') {
         const denom = COIN_DENOMS.find(d => d.id === item.denomination);
@@ -290,7 +283,6 @@
         }
       }
     });
-
     document.getElementById('coins-total').textContent = `€${coinValue.toFixed(2)}`;
     document.getElementById('coins-count').textContent = `${coinCount} coin${coinCount !== 1 ? 's' : ''}`;
     document.getElementById('notes-total').textContent = `€${noteValue.toFixed(2)}`;
@@ -298,7 +290,6 @@
     document.getElementById('grand-total').textContent = `€${(coinValue + noteValue).toFixed(2)}`;
   }
 
-  // Totals for selected country
   function updateCountryTotals() {
     let countryValue = 0, countryCount = 0;
     collectionData.forEach(item => {
@@ -315,14 +306,11 @@
   }
 
   // ==================== COIN REVERSE MODAL ====================
-  function showCoinReverseModal(denomId) {
+  window.showCoinReverseModal = function(denomId) {
     const denom = COIN_DENOMS.find(d => d.id === denomId);
     if (!denom) return;
-
-    // Remove existing modal if any
     const existing = document.getElementById('coin-info-modal');
     if (existing) existing.remove();
-
     const modal = document.createElement('div');
     modal.id = 'coin-info-modal';
     modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
@@ -338,11 +326,10 @@
     `;
     document.body.appendChild(modal);
     modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
-    // Close on click outside
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
     });
-  }
+  };
 
   // ==================== UI RENDERING ====================
   function renderCountrySelector() {
@@ -389,7 +376,6 @@
       });
       html += '</tr>';
     });
-
     html += '</tbody></table>';
     container.innerHTML = html;
 
@@ -436,7 +422,6 @@
       `;
     }).join('');
 
-    // Attach note button listeners
     document.querySelectorAll('.increase-note').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -453,9 +438,10 @@
     });
   }
 
-  // ==================== DATA UPDATE ====================
+  // ==================== DATA UPDATE (FIXED) ====================
   async function updateCoinQuantity(country, year, denomination, delta) {
     if (isLoading) return alert('Please wait, operation in progress.');
+    if (!window.dataSdk) return alert('Data SDK not available.');
 
     const existing = collectionData.find(d => d.type === 'coin' && d.country === country && d.year === year && d.denomination === denomination);
     const newQty = (existing ? existing.quantity : 0) + delta;
@@ -463,7 +449,6 @@
 
     isLoading = true;
     document.body.classList.add('loading');
-
     try {
       if (existing) {
         if (newQty === 0) {
@@ -491,6 +476,7 @@
 
   async function updateNoteQuantity(denomination, delta) {
     if (isLoading) return alert('Please wait, operation in progress.');
+    if (!window.dataSdk) return alert('Data SDK not available.');
 
     const existing = collectionData.find(d => d.type === 'note' && d.denomination === denomination);
     const newQty = (existing ? existing.quantity : 0) + delta;
@@ -498,7 +484,6 @@
 
     isLoading = true;
     document.body.classList.add('loading');
-
     try {
       if (existing) {
         if (newQty === 0) {
@@ -526,11 +511,9 @@
 
   async function resetCollection() {
     if (isLoading || collectionData.length === 0) return;
-
     isLoading = true;
     document.getElementById('confirm-reset').disabled = true;
     document.body.classList.add('loading');
-
     try {
       for (const item of [...collectionData]) {
         const result = await window.dataSdk.delete(item);
@@ -570,7 +553,6 @@
 
   // ==================== INIT ====================
   async function init() {
-    // Element SDK
     if (window.elementSdk) {
       window.elementSdk.init({
         defaultConfig,
@@ -593,25 +575,20 @@
       });
     }
 
-    // Data SDK
     const result = await window.dataSdk.init(dataHandler);
     if (!result.isOk) {
       console.error('Data SDK init failed:', result.error);
       alert('Data SDK init failed: ' + result.error);
     }
 
-    // Populate UI
     renderCountrySelector();
-    // Initial render will happen after data loads via onDataChanged
 
-    // Country change listener
     document.getElementById('country-select').addEventListener('change', (e) => {
       selectedCountryCode = e.target.value;
       renderCoinMatrix();
       updateCountryTotals();
     });
 
-    // Reset button handlers
     document.getElementById('reset-btn').addEventListener('click', () => {
       document.getElementById('reset-btn').classList.add('hidden');
       document.getElementById('reset-confirm').classList.remove('hidden');
@@ -621,9 +598,6 @@
       document.getElementById('reset-confirm').classList.add('hidden');
       document.getElementById('reset-btn').classList.remove('hidden');
     });
-
-    // Make showCoinReverseModal globally accessible for onclick
-    window.showCoinReverseModal = showCoinReverseModal;
   }
 
   init();
