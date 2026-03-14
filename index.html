@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Euro Collection Tracker by Country & Year</title>
+  <title>Euro Collection Tracker</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="/_sdk/element_sdk.js"></script>
   <script src="/_sdk/data_sdk.js"></script>
@@ -39,38 +39,54 @@
     <header class="text-center mb-8">
       <div class="inline-flex items-center gap-3 mb-2">
         <span class="text-4xl">🪙</span>
-        <h1 id="main-title" class="text-3xl font-bold text-amber-400">Euro Collection by Country</h1>
+        <h1 id="main-title" class="text-3xl font-bold text-amber-400">My Euro Collection</h1>
         <span class="text-4xl">💶</span>
       </div>
-      <p class="text-slate-400">Track your coins by country and year (5c – €2)</p>
+      <p class="text-slate-400">Track coins by country & year, and banknotes</p>
     </header>
 
-    <!-- Country selector and summary -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="md:col-span-2">
-        <label class="block text-amber-300 mb-2 font-medium">Select Country</label>
-        <select id="country-select" class="w-full p-3 bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-amber-400">
-          <!-- populated by JS -->
-        </select>
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div class="bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur rounded-2xl p-5 border border-amber-500/30">
+        <div class="flex items-center gap-3 mb-2"><span class="text-2xl">🪙</span> <span class="text-amber-300 font-medium">Coins</span></div>
+        <p id="coins-total" class="text-3xl font-bold text-white">€0.00</p>
+        <p id="coins-count" class="text-sm text-slate-400 mt-1">0 coins</p>
       </div>
-      <div class="bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur rounded-2xl p-4 border border-amber-500/30">
-        <div class="text-amber-300 font-medium">Total Coins</div>
-        <p id="country-coins-count" class="text-2xl font-bold text-white">0</p>
+      <div class="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 backdrop-blur rounded-2xl p-5 border border-emerald-500/30">
+        <div class="flex items-center gap-3 mb-2"><span class="text-2xl">💵</span> <span class="text-emerald-300 font-medium">Banknotes</span></div>
+        <p id="notes-total" class="text-3xl font-bold text-white">€0.00</p>
+        <p id="notes-count" class="text-sm text-slate-400 mt-1">0 notes</p>
       </div>
-      <div class="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 backdrop-blur rounded-2xl p-4 border border-emerald-500/30">
-        <div class="text-emerald-300 font-medium">Total Value</div>
-        <p id="country-total-value" class="text-2xl font-bold text-white">€0.00</p>
+      <div class="bg-gradient-to-br from-violet-500/20 to-violet-600/10 backdrop-blur rounded-2xl p-5 border border-violet-500/30">
+        <div class="flex items-center gap-3 mb-2"><span class="text-2xl">💰</span> <span class="text-violet-300 font-medium">Grand Total</span></div>
+        <p id="grand-total" class="text-4xl font-bold text-white">€0.00</p>
       </div>
     </div>
 
-    <!-- Coins matrix (country, year, denomination) -->
-    <section class="bg-white/5 backdrop-blur rounded-2xl p-6 mb-6 border border-white/10 overflow-x-auto">
-      <h2 class="text-xl font-semibold text-amber-400 mb-4 flex items-center gap-2">
-        <span>🪙</span> Coins for <span id="selected-country-name">Slovakia</span>
-      </h2>
-      <div id="matrix-container">
-        <!-- dynamic table inserted here -->
+    <!-- Country selector and coin matrix -->
+    <section class="bg-white/5 backdrop-blur rounded-2xl p-6 mb-6 border border-white/10">
+      <h2 class="text-xl font-semibold text-amber-400 mb-4 flex items-center gap-2"><span>🪙</span> Euro Coins by Country & Year</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-amber-300 mb-2 font-medium">Select Country</label>
+          <select id="country-select" class="w-full p-3 bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-amber-400"></select>
+        </div>
+        <div class="bg-amber-500/10 rounded-xl p-3 flex items-center justify-between">
+          <span class="text-amber-300">Total for <span id="selected-country-name">Slovakia</span>:</span>
+          <span id="country-coins-value" class="text-white font-bold">€0.00</span>
+        </div>
+        <div class="bg-amber-500/10 rounded-xl p-3 flex items-center justify-between">
+          <span class="text-amber-300">Coins count:</span>
+          <span id="country-coins-count" class="text-white font-bold">0</span>
+        </div>
       </div>
+      <div id="matrix-container" class="overflow-x-auto"></div>
+    </section>
+
+    <!-- Banknotes Section -->
+    <section class="bg-white/5 backdrop-blur rounded-2xl p-6 mb-6 border border-white/10">
+      <h2 class="text-xl font-semibold text-emerald-400 mb-4 flex items-center gap-2"><span>💵</span> Euro Banknotes</h2>
+      <div id="notes-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
     </section>
 
     <!-- Reset Button -->
@@ -82,7 +98,7 @@
       </div>
     </div>
     <footer class="text-center mt-8 text-slate-500 text-sm">
-      <p>Click + / - to adjust quantity for each year and denomination</p>
+      <p>Click +/- to adjust quantities</p>
     </footer>
   </div>
 </div>
@@ -91,7 +107,7 @@
 <script>
   // ==================== MOCK SDK FALLBACK ====================
   (function setupMockSDK() {
-    const STORAGE_KEY = 'euro_collection_country_data';
+    const STORAGE_KEY = 'euro_collection_combined_data';
     if (typeof window.dataSdk !== 'undefined' && window.dataSdk) {
       console.log('Using real Data SDK');
       return;
@@ -162,8 +178,8 @@
     { code: 'ES', name: 'Spain', startYear: 2002 }
   ];
 
-  // Denominations from 5c to €2 (exclude 1c, 2c)
-  const DENOMINATIONS = [
+  // Denominations for coins (5c to €2)
+  const COIN_DENOMS = [
     { id: '5c', label: '5¢', value: 0.05 },
     { id: '10c', label: '10¢', value: 0.10 },
     { id: '20c', label: '20¢', value: 0.20 },
@@ -172,13 +188,24 @@
     { id: '2e', label: '€2', value: 2.00 }
   ];
 
+  // Banknotes
+  const BANKNOTES = [
+    { id: '5n', label: '€5', value: 5, color: 'from-gray-400 to-gray-500' },
+    { id: '10n', label: '€10', value: 10, color: 'from-red-400 to-red-500' },
+    { id: '20n', label: '€20', value: 20, color: 'from-blue-400 to-blue-500' },
+    { id: '50n', label: '€50', value: 50, color: 'from-orange-400 to-orange-500' },
+    { id: '100n', label: '€100', value: 100, color: 'from-green-400 to-green-500' },
+    { id: '200n', label: '€200', value: 200, color: 'from-yellow-400 to-yellow-500' },
+    { id: '500n', label: '€500', value: 500, color: 'from-purple-400 to-purple-500' }
+  ];
+
   // ==================== STATE ====================
-  let collectionData = [];               // each item: { id?, country, year, denomination, quantity }
+  let collectionData = []; // items can be: { type: 'coin', country, year, denomination, quantity } or { type: 'note', denomination, quantity }
   let isLoading = false;
-  let selectedCountryCode = 'SK';        // default Slovakia
+  let selectedCountryCode = 'SK'; // default
 
   const defaultConfig = {
-    collection_title: 'Euro Collection by Country',
+    collection_title: 'My Euro Collection',
     background_color: '#1a1a2e',
     accent_color: '#f59e0b',
     text_color: '#ffffff',
@@ -191,12 +218,12 @@
     return COUNTRIES.find(c => c.code === code) || COUNTRIES[0];
   }
 
-  function getQuantity(country, year, denomination) {
-    const item = collectionData.find(d => d.country === country && d.year === year && d.denomination === denomination);
+  // Coins
+  function getCoinQuantity(country, year, denomination) {
+    const item = collectionData.find(d => d.type === 'coin' && d.country === country && d.year === year && d.denomination === denomination);
     return item ? item.quantity : 0;
   }
 
-  // Returns array of years for a country (from startYear to CURRENT_YEAR)
   function getYearsForCountry(countryCode) {
     const country = getCountryByCode(countryCode);
     const years = [];
@@ -204,20 +231,53 @@
     return years;
   }
 
-  // Calculate totals for selected country
-  function getCountryTotals(countryCode) {
-    let totalCoins = 0;
-    let totalValue = 0;
+  // Banknotes
+  function getNoteQuantity(denomination) {
+    const item = collectionData.find(d => d.type === 'note' && d.denomination === denomination);
+    return item ? item.quantity : 0;
+  }
+
+  // Totals for summary cards
+  function updateTotals() {
+    let coinValue = 0, coinCount = 0, noteValue = 0, noteCount = 0;
+
     collectionData.forEach(item => {
-      if (item.country === countryCode) {
-        const denom = DENOMINATIONS.find(d => d.id === item.denomination);
+      if (item.type === 'coin') {
+        const denom = COIN_DENOMS.find(d => d.id === item.denomination);
         if (denom) {
-          totalCoins += item.quantity;
-          totalValue += denom.value * item.quantity;
+          coinValue += denom.value * item.quantity;
+          coinCount += item.quantity;
+        }
+      } else if (item.type === 'note') {
+        const note = BANKNOTES.find(n => n.id === item.denomination);
+        if (note) {
+          noteValue += note.value * item.quantity;
+          noteCount += item.quantity;
         }
       }
     });
-    return { totalCoins, totalValue };
+
+    document.getElementById('coins-total').textContent = `€${coinValue.toFixed(2)}`;
+    document.getElementById('coins-count').textContent = `${coinCount} coin${coinCount !== 1 ? 's' : ''}`;
+    document.getElementById('notes-total').textContent = `€${noteValue.toFixed(2)}`;
+    document.getElementById('notes-count').textContent = `${noteCount} note${noteCount !== 1 ? 's' : ''}`;
+    document.getElementById('grand-total').textContent = `€${(coinValue + noteValue).toFixed(2)}`;
+  }
+
+  // Totals for selected country
+  function updateCountryTotals() {
+    let countryValue = 0, countryCount = 0;
+    collectionData.forEach(item => {
+      if (item.type === 'coin' && item.country === selectedCountryCode) {
+        const denom = COIN_DENOMS.find(d => d.id === item.denomination);
+        if (denom) {
+          countryValue += denom.value * item.quantity;
+          countryCount += item.quantity;
+        }
+      }
+    });
+    document.getElementById('country-coins-value').textContent = `€${countryValue.toFixed(2)}`;
+    document.getElementById('country-coins-count').textContent = countryCount;
   }
 
   // ==================== UI RENDERING ====================
@@ -228,7 +288,7 @@
     ).join('');
   }
 
-  function renderMatrix() {
+  function renderCoinMatrix() {
     const container = document.getElementById('matrix-container');
     const country = getCountryByCode(selectedCountryCode);
     document.getElementById('selected-country-name').textContent = country.name;
@@ -239,25 +299,24 @@
       return;
     }
 
-    // Build table: first column denominations, then each year
     let html = '<table><thead><tr><th>Denom</th>';
     years.forEach(year => html += `<th class="year-col">${year}</th>`);
     html += '</tr></thead><tbody>';
 
-    DENOMINATIONS.forEach(denom => {
+    COIN_DENOMS.forEach(denom => {
       html += `<tr><td class="denom-col font-bold">${denom.label}</td>`;
       years.forEach(year => {
-        const qty = getQuantity(selectedCountryCode, year, denom.id);
+        const qty = getCoinQuantity(selectedCountryCode, year, denom.id);
         html += `
           <td>
             <div class="flex items-center justify-center gap-1">
-              <button class="decrease-btn w-6 h-6 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center"
+              <button class="decrease-coin w-6 h-6 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center"
                 data-country="${selectedCountryCode}"
                 data-year="${year}"
                 data-denom="${denom.id}"
                 ${qty === 0 ? 'disabled style="opacity:0.3;cursor:not-allowed"' : ''}>−</button>
               <span class="w-6 text-white font-medium" id="qty-${selectedCountryCode}-${year}-${denom.id}">${qty}</span>
-              <button class="increase-btn w-6 h-6 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center"
+              <button class="increase-coin w-6 h-6 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center"
                 data-country="${selectedCountryCode}"
                 data-year="${year}"
                 data-denom="${denom.id}">+</button>
@@ -270,42 +329,71 @@
     html += '</tbody></table>';
     container.innerHTML = html;
 
-    // Attach event listeners to buttons
-    document.querySelectorAll('.increase-btn').forEach(btn => {
+    // Attach coin button listeners
+    document.querySelectorAll('.increase-coin').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const country = btn.dataset.country;
         const year = parseInt(btn.dataset.year);
         const denom = btn.dataset.denom;
-        updateQuantity(country, year, denom, 1);
+        updateCoinQuantity(country, year, denom, 1);
       });
     });
-
-    document.querySelectorAll('.decrease-btn').forEach(btn => {
+    document.querySelectorAll('.decrease-coin').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const country = btn.dataset.country;
         const year = parseInt(btn.dataset.year);
         const denom = btn.dataset.denom;
-        updateQuantity(country, year, denom, -1);
+        updateCoinQuantity(country, year, denom, -1);
       });
     });
   }
 
-  function updateTotals() {
-    const { totalCoins, totalValue } = getCountryTotals(selectedCountryCode);
-    document.getElementById('country-coins-count').textContent = totalCoins;
-    document.getElementById('country-total-value').textContent = `€${totalValue.toFixed(2)}`;
+  function renderBanknotes() {
+    const notesGrid = document.getElementById('notes-grid');
+    notesGrid.innerHTML = BANKNOTES.map(note => {
+      const qty = getNoteQuantity(note.id);
+      return `
+        <div class="bg-gradient-to-br ${note.color} rounded-xl p-4 relative overflow-hidden shine">
+          <div class="absolute inset-0 shine pointer-events-none"></div>
+          <div class="relative z-10">
+            <div class="text-2xl font-bold text-white mb-1">${note.label}</div>
+            <div class="text-white/80 text-sm mb-3">×<span id="qty-${note.id}">${qty}</span></div>
+            <div class="flex gap-2">
+              <button class="decrease-note w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white font-bold flex items-center justify-center"
+                data-denom="${note.id}"
+                ${qty === 0 ? 'disabled style="opacity:0.3;cursor:not-allowed"' : ''}>−</button>
+              <button class="increase-note w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white font-bold flex items-center justify-center"
+                data-denom="${note.id}">+</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Attach note button listeners
+    document.querySelectorAll('.increase-note').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const denom = btn.dataset.denom;
+        updateNoteQuantity(denom, 1);
+      });
+    });
+    document.querySelectorAll('.decrease-note').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const denom = btn.dataset.denom;
+        updateNoteQuantity(denom, -1);
+      });
+    });
   }
 
   // ==================== DATA UPDATE ====================
-  async function updateQuantity(country, year, denomination, delta) {
-    if (isLoading) {
-      alert('Please wait, operation in progress.');
-      return;
-    }
+  async function updateCoinQuantity(country, year, denomination, delta) {
+    if (isLoading) return alert('Please wait, operation in progress.');
 
-    const existing = collectionData.find(d => d.country === country && d.year === year && d.denomination === denomination);
+    const existing = collectionData.find(d => d.type === 'coin' && d.country === country && d.year === year && d.denomination === denomination);
     const newQty = (existing ? existing.quantity : 0) + delta;
     if (newQty < 0) return;
 
@@ -326,11 +414,45 @@
           alert('Maximum collection size reached!');
           return;
         }
-        const result = await window.dataSdk.create({ country, year, denomination, quantity: newQty });
+        const result = await window.dataSdk.create({ type: 'coin', country, year, denomination, quantity: newQty });
         if (!result.isOk) alert('Create failed: ' + result.error);
       }
     } catch (error) {
-      console.error('Unexpected error:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      isLoading = false;
+      document.body.classList.remove('loading');
+    }
+  }
+
+  async function updateNoteQuantity(denomination, delta) {
+    if (isLoading) return alert('Please wait, operation in progress.');
+
+    const existing = collectionData.find(d => d.type === 'note' && d.denomination === denomination);
+    const newQty = (existing ? existing.quantity : 0) + delta;
+    if (newQty < 0) return;
+
+    isLoading = true;
+    document.body.classList.add('loading');
+
+    try {
+      if (existing) {
+        if (newQty === 0) {
+          const result = await window.dataSdk.delete(existing);
+          if (!result.isOk) alert('Delete failed: ' + result.error);
+        } else {
+          const result = await window.dataSdk.update({ ...existing, quantity: newQty });
+          if (!result.isOk) alert('Update failed: ' + result.error);
+        }
+      } else if (newQty > 0) {
+        if (collectionData.length >= 999) {
+          alert('Maximum collection size reached!');
+          return;
+        }
+        const result = await window.dataSdk.create({ type: 'note', denomination, quantity: newQty });
+        if (!result.isOk) alert('Create failed: ' + result.error);
+      }
+    } catch (error) {
       alert('Error: ' + error.message);
     } finally {
       isLoading = false;
@@ -368,8 +490,10 @@
   const dataHandler = {
     onDataChanged(data) {
       collectionData = data;
-      renderMatrix();   // re-render matrix with updated quantities
+      renderCoinMatrix();
+      renderBanknotes();
       updateTotals();
+      updateCountryTotals();
     }
   };
 
@@ -412,19 +536,15 @@
       alert('Data SDK init failed: ' + result.error);
     }
 
-    // Populate country selector
+    // Populate UI
     renderCountrySelector();
-
-    // Initial render (matrix will be drawn after data arrives via onDataChanged)
-    // But we need to render something now; data will trigger re-render.
-    renderMatrix();
-    updateTotals();
+    // Initial render will happen after data loads via onDataChanged
 
     // Country change listener
     document.getElementById('country-select').addEventListener('change', (e) => {
       selectedCountryCode = e.target.value;
-      renderMatrix();
-      updateTotals();
+      renderCoinMatrix();
+      updateCountryTotals();
     });
 
     // Reset button handlers
