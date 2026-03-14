@@ -29,16 +29,8 @@
     th { background: rgba(255,255,255,0.05); font-weight: 600; color: #ffd700; }
     td { color: white; }
     .year-col { min-width: 80px; }
-    .denom-col { background: rgba(255,255,255,0.02); font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: space-between; }
-    .info-btn { background: rgba(255,255,255,0.2); border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; transition: 0.2s; }
-    .info-btn:hover { background: rgba(255,255,255,0.4); }
-    .coin-color {
-      width: 30px; height: 30px; border-radius: 50%; display: inline-block;
-      background: linear-gradient(135deg, #b87333, #e0a64a);
-    }
-    .coin-color.gold { background: linear-gradient(135deg, #ffd700, #f0b000); }
-    .coin-color.silver { background: linear-gradient(135deg, #c0c0c0, #a0a0a0); }
-    .coin-color.bi { background: radial-gradient(circle at 30% 30%, #ffd700, #c0c0c0 70%); }
+    .denom-col { background: rgba(255,255,255,0.02); font-weight: 500; cursor: pointer; }
+    .denom-col:hover { text-decoration: underline; text-decoration-color: #f59e0b; }
   </style>
 </head>
 <body class="h-full">
@@ -107,14 +99,14 @@
       </div>
     </div>
     <footer class="text-center mt-8 text-slate-500 text-sm">
-      <p>Click +/- to adjust quantities | ℹ️ for coin reverse info</p>
+      <p>Click +/- to adjust quantities | Click denomination for coin reverse info</p>
     </footer>
   </div>
 </div>
 <div id="demo-badge" class="demo-badge hidden">🔧 Demo Mode (localStorage)</div>
 
 <script>
-  // ==================== MOCK SDK FALLBACK (FIXED) ====================
+  // ==================== MOCK SDK FALLBACK (RELIABLE) ====================
   (function setupMockSDK() {
     const STORAGE_KEY = 'euro_collection_combined_data';
     if (typeof window.dataSdk !== 'undefined' && window.dataSdk) {
@@ -131,57 +123,36 @@
     } catch (e) { console.error('Failed to load from localStorage', e); }
 
     window.dataSdk = {
-      handler: null, // will be set in init
-
+      handler: null,
       async init(handler) {
         this.handler = handler;
-        // Simulate initial data load
         setTimeout(() => {
-          if (this.handler?.onDataChanged) {
-            this.handler.onDataChanged(mockData);
-          }
+          if (this.handler?.onDataChanged) this.handler.onDataChanged(mockData);
         }, 0);
         return { isOk: true };
       },
-
       async create(item) {
         if (!item.id) item.id = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         mockData.push(item);
         this._saveAndNotify();
         return { isOk: true, data: item };
       },
-
       async update(item) {
         const index = mockData.findIndex(d => d.id === item.id);
-        if (index !== -1) {
-          mockData[index] = item;
-        } else {
-          // If not found, treat as create (should not happen)
-          mockData.push(item);
-        }
+        if (index !== -1) mockData[index] = item;
+        else mockData.push(item);
         this._saveAndNotify();
         return { isOk: true };
       },
-
       async delete(item) {
         mockData = mockData.filter(d => d.id !== item.id);
         this._saveAndNotify();
         return { isOk: true };
       },
-
       _saveAndNotify() {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(mockData));
-        } catch (e) {
-          console.error('Failed to save to localStorage', e);
-        }
-        // Notify the handler after a tiny delay to simulate async
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(mockData)); } catch (e) {}
         setTimeout(() => {
-          if (this.handler?.onDataChanged) {
-            this.handler.onDataChanged(mockData);
-          } else {
-            console.warn('No handler registered in mock SDK');
-          }
+          if (this.handler?.onDataChanged) this.handler.onDataChanged(mockData);
         }, 10);
       }
     };
@@ -212,12 +183,12 @@
   ];
 
   const COIN_DENOMS = [
-    { id: '5c', label: '5¢', value: 0.05, reverse: 'Common reverse (since 2007): Globe with Europe, value "5 CENT".\nOlder coins (2002-2006): Map of EU15.', colorClass: 'coin-color' },
-    { id: '10c', label: '10¢', value: 0.10, reverse: 'Common reverse (since 2007): Globe with Europe, value "10 CENT".\nOlder coins (2002-2006): Map of EU15.', colorClass: 'coin-color gold' },
-    { id: '20c', label: '20¢', value: 0.20, reverse: 'Common reverse (since 2007): Globe with Europe, value "20 CENT".\nOlder coins (2002-2006): Map of EU15.', colorClass: 'coin-color gold' },
-    { id: '50c', label: '50¢', value: 0.50, reverse: 'Common reverse (since 2007): Globe with Europe, value "50 CENT".\nOlder coins (2002-2006): Map of EU15.', colorClass: 'coin-color gold' },
-    { id: '1e', label: '€1', value: 1.00, reverse: 'Common reverse (since 2007): Europe and Africa, value "1 EURO".\nOlder coins (2002-2006): Map of EU15.', colorClass: 'coin-color bi' },
-    { id: '2e', label: '€2', value: 2.00, reverse: 'Common reverse (since 2007): Europe and Africa, value "2 EURO".\nOlder coins (2002-2006): Map of EU15.', colorClass: 'coin-color bi' }
+    { id: '5c', label: '5¢', value: 0.05, reverse: 'Common reverse (since 2007): Globe with Europe, value "5 CENT".\nOlder coins (2002-2006): Map of EU15.' },
+    { id: '10c', label: '10¢', value: 0.10, reverse: 'Common reverse (since 2007): Globe with Europe, value "10 CENT".\nOlder coins (2002-2006): Map of EU15.' },
+    { id: '20c', label: '20¢', value: 0.20, reverse: 'Common reverse (since 2007): Globe with Europe, value "20 CENT".\nOlder coins (2002-2006): Map of EU15.' },
+    { id: '50c', label: '50¢', value: 0.50, reverse: 'Common reverse (since 2007): Globe with Europe, value "50 CENT".\nOlder coins (2002-2006): Map of EU15.' },
+    { id: '1e', label: '€1', value: 1.00, reverse: 'Common reverse (since 2007): Europe and Africa, value "1 EURO".\nOlder coins (2002-2006): Map of EU15.' },
+    { id: '2e', label: '€2', value: 2.00, reverse: 'Common reverse (since 2007): Europe and Africa, value "2 EURO".\nOlder coins (2002-2006): Map of EU15.' }
   ];
 
   const BANKNOTES = [
@@ -305,7 +276,7 @@
     document.getElementById('country-coins-count').textContent = countryCount;
   }
 
-  // ==================== COIN REVERSE MODAL ====================
+  // ==================== COIN REVERSE MODAL (simplified) ====================
   window.showCoinReverseModal = function(denomId) {
     const denom = COIN_DENOMS.find(d => d.id === denomId);
     if (!denom) return;
@@ -316,10 +287,7 @@
     modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
     modal.innerHTML = `
       <div class="bg-slate-900 rounded-2xl p-6 max-w-sm w-full border border-white/10">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="${denom.colorClass}"></div>
-          <h3 class="text-xl font-bold text-white">${denom.label} Coin Reverse</h3>
-        </div>
+        <h3 class="text-xl font-bold text-white mb-4">${denom.label} Coin Reverse</h3>
         <p class="text-white/80 whitespace-pre-line mb-4">${denom.reverse}</p>
         <button class="close-modal w-full px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg transition-all">Close</button>
       </div>
@@ -355,7 +323,7 @@
     html += '</tr></thead><tbody>';
 
     COIN_DENOMS.forEach(denom => {
-      html += `<tr><td class="denom-col"><span>${denom.label}</span> <span class="info-btn" onclick="showCoinReverseModal('${denom.id}')">ℹ️</span></td>`;
+      html += `<tr><td class="denom-col" onclick="showCoinReverseModal('${denom.id}')">${denom.label}</td>`;
       years.forEach(year => {
         const qty = getCoinQuantity(selectedCountryCode, year, denom.id);
         html += `
@@ -438,7 +406,7 @@
     });
   }
 
-  // ==================== DATA UPDATE (FIXED) ====================
+  // ==================== DATA UPDATE ====================
   async function updateCoinQuantity(country, year, denomination, delta) {
     if (isLoading) return alert('Please wait, operation in progress.');
     if (!window.dataSdk) return alert('Data SDK not available.');
